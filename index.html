@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Rescue Church</title>
+  <link rel="stylesheet" href="assets/style.css" />
+  <link rel="preconnect" href="https://i.ytimg.com">
+  <link rel="preconnect" href="https://www.youtube.com">
+  <meta name="description" content="Site oficial da Rescue Church – Palavra diária, busca bíblica e transmissões ao vivo."/>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img src="assets/logo.svg" alt="Rescue Church" class="logo" />
+      <h1>Rescue Church</h1>
+    </div>
+    <nav class="nav">
+      <a href="#inicio">Início</a>
+      <a href="#versiculo">Versículo do Dia</a>
+      <a href="#biblia">Buscar na Bíblia</a>
+      <a href="#midia">Vídeos & Lives</a>
+      <button id="btnConfig" class="btn ghost" title="Configurações">⚙️</button>
+    </nav>
+  </header>
+
+  <main id="inicio" class="container">
+    <section id="hero" class="card hero">
+      <div>
+        <h2>Bem-vindo(a) à Rescue Church</h2>
+        <p>Palavra que transforma, comunidade que abraça.</p>
+        <a class="btn primary" href="#versiculo">Ver o Versículo de Hoje</a>
+      </div>
+    </section>
+
+    <section id="versiculo" class="card">
+      <h3>Versículo do dia</h3>
+      <p id="vday-text" class="vtext">Carregando…</p>
+      <p id="vday-ref" class="vref"></p>
+      <div class="hint">Dica: clique no texto para copiar 📋</div>
+    </section>
+
+    <section id="biblia" class="card">
+      <h3>Buscar na Bíblia</h3>
+      <form id="searchForm" class="row">
+        <input id="q" class="input" placeholder="Ex.: João 3:16 ou 'amor fé esperança'" />
+        <select id="trad" class="input">
+          <option value="nvi">NVI (pt-BR) – requer token</option>
+          <option value="acf">ACF (pt-BR) – requer token</option>
+          <option value="kjv">KJV (en) – sem token (fallback)</option>
+        </select>
+        <button class="btn primary" type="submit">Buscar</button>
+      </form>
+      <div id="searchInfo" class="muted"></div>
+      <div id="results" class="results"></div>
+    </section>
+
+    <section id="midia" class="card">
+      <h3>Vídeos & Lives</h3>
+
+      <div class="grid-2">
+        <div>
+          <h4>Ao vivo</h4>
+          <!-- Troque CHANNEL_HANDLE ou CHANNEL_ID conforme instrução abaixo -->
+          <div class="video-wrapper">
+            <iframe id="liveFrame"
+              src="" title="Transmissão ao vivo" frameborder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowfullscreen></iframe>
+          </div>
+          <p class="muted">Se estiver ao vivo, aparecerá aqui. Caso contrário, mostrará a última live.</p>
+        </div>
+
+        <div>
+          <h4>Últimos vídeos</h4>
+          <!-- Use a playlist de uploads do canal (UU...) -->
+          <div class="video-wrapper">
+            <iframe id="playlistFrame"
+              src="" title="Uploads do canal" frameborder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowfullscreen></iframe>
+          </div>
+          <p class="muted">Lista dos vídeos mais recentes do canal no YouTube.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <small>© <span id="yy"></span> Rescue Church. Todos os direitos reservados.</small>
+  </footer>
+
+  <!-- Modal de Configurações -->
+  <dialog id="configModal" class="modal">
+    <form method="dialog" class="card">
+      <h3>Configurações</h3>
+
+      <label class="lbl">Token da API “A Bíblia Digital” (opcional, para PT-BR)
+        <input id="bibliaToken" class="input" placeholder="Cole aqui seu token (Bearer)"/>
+      </label>
+      <p class="muted">
+        Obtenha grátis em <a href="https://www.abibliadigital.com.br/" target="_blank" rel="noopener">abibliadigital.com.br</a>.
+        Em GitHub Pages o token fica público; use apenas para baixo risco/limite.
+      </p>
+
+      <div class="row">
+        <label class="lbl">YouTube – Identificador do canal (handle <b>@rescuechurch</b> ou <b>ID do canal</b>) 
+          <input id="ytChannel" class="input" placeholder="@seucanal ou UCxxxxxxxxxx"/>
+        </label>
+        <label class="lbl">YouTube – ID da playlist de uploads (começa com <b>UU</b>)
+          <input id="ytUploads" class="input" placeholder="UUxxxxxxxxxxxxxxxx"/>
+        </label>
+      </div>
+
+      <menu class="actions">
+        <button value="cancel" class="btn ghost">Cancelar</button>
+        <button id="saveCfg" class="btn primary" value="default">Salvar</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <script src="assets/app.js"></script>
+</body>
+</html>
