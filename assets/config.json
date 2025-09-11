@@ -1,0 +1,12 @@
+{
+  "siteTitle": "Igreja de Resgate",
+  "yt": {
+    "channelUC": "",             // ex.: "UCxxxxxxxxxxxxxxxxxxxxxx" (para 'Ao vivo')
+    "uploadsUU": "",             // ex.: "UUxxxxxxxxxxxxxxxxxxxxxx" (uploads do canal)
+    "shortsPlaylist": "",        // ex.: "PLxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    "fullPlaylist": ""           // ex.: "PLxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  },
+  "cms": {
+    "googleSheetId": ""          // opcional: ID da planilha do Google (aba 'versiculos' e/ou 'videos')
+  }
+}
