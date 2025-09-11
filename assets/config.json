@@ -1,16 +1,9 @@
 {
-  "provider": "biblia",
-  "biblia": {
-    "apiBase": "https://api.biblia.com/v1",
-    "versions": {
-      "NVI (pt-BR)": "POR-NVI",
-      "ARA (pt-BR)": "POR-ARA",
-      "NTLH (pt-BR)": "POR-NTLH"
-    },
-    "defaultVersion": "POR-NTLH"
+  "proxyBase": "https://SEU-WORKER-NOME.seuusuario.workers.dev",
+  "versions": {
+    "NVI (pt-BR)": "POR-NVI",
+    "ARA (pt-BR)": "POR-ARA",
+    "NTLH (pt-BR)": "POR-NTLH"
   },
-  "proxy": {
-    "useWorker": true,
-    "workerBase": "https://rescue-proxy.vitorpaulojquadros.workers.dev"
-  }
+  "defaultVersion": "NTLH (pt-BR)"
 }
