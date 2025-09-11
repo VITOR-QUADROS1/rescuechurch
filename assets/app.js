@@ -1,21 +1,13 @@
-/* ====== util ====== */
+/* ====== helpers ====== */
 const $ = (q) => document.querySelector(q);
-const $$ = (q) => document.querySelectorAll(q);
 const store = {
-  get() {
-    try { return JSON.parse(localStorage.getItem("rc:cfg") || "{}"); } catch { return {}; }
-  },
+  get() { try { return JSON.parse(localStorage.getItem("rc:cfg") || "{}"); } catch { return {}; } },
   set(cfg) { localStorage.setItem("rc:cfg", JSON.stringify(cfg)); }
 };
+function copyToClipboard(text){ navigator.clipboard?.writeText(text).catch(()=>{}); }
+function escapeHTML(s){ return s.replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[m])); }
 
-function copyToClipboard(text) {
-  navigator.clipboard?.writeText(text).catch(()=>{});
-}
-
-/* ====== Versículo do dia ======
-   1) tenta OurManna (sem chave)
-   2) se falhar, escolhe um de uma pequena lista local (PT-BR)
-*/
+/* ====== Versículo do dia (OurManna → fallback local) ====== */
 async function loadVerseOfDay() {
   const vtext = $("#vday-text"); const vref = $("#vday-ref");
   try {
@@ -40,60 +32,80 @@ async function loadVerseOfDay() {
 }
 
 /* ====== Busca Bíblica ======
-   - Preferência: PT-BR via A Bíblia Digital (requer token Bearer).
-   - Fallback: bible-api.com (KJV em inglês).
+   Agora usando A Bíblia Digital SEM token (PT-BR).
+   - Referências (João 3:16): /api/verses/{version}/{ref}
+   - Busca textual: /api/verses/search?version={version}&search={q}
+   Se a API pública recusar/limitar, caímos no fallback KJV (bible-api.com).
 */
-async function searchBible(q, trad, token) {
-  const results = $("#results"); results.innerHTML = "";
-  const info = $("#searchInfo");
-  const isRef = /^[^\s]+\s*\d+[:.]\d+(-\d+)?$/i.test(q.trim()); // "João 3:16" etc.
+function isReference(q){
+  // aceita: "João 3:16", "joao 3:16-18", "sl 23", "gn 1:1"
+  const s = q.trim().toLowerCase();
+  return /^[^\s]+\s*\d+([:.]\d+(-\d+)?)?$/.test(s) || /^[a-zçãé]+?\s*\d+$/.test(s);
+}
 
-  if ((trad === "nvi" || trad === "acf") && !token) {
-    info.innerHTML = "Para PT-BR, informe um token da <a href='https://www.abibliadigital.com.br/' target='_blank' rel='noopener'>A Bíblia Digital</a> em ⚙️ Configurações. Usaremos KJV (inglês) como alternativa.";
-    trad = "kjv";
-  } else {
-    info.textContent = "";
+async function searchBible(q, trad) {
+  const results = $("#results"); results.innerHTML = "";
+  const info = $("#searchInfo"); info.textContent = "";
+
+  const refLike = isReference(q);
+  const v = trad; // "nvi" | "acf" | "kjv"
+
+  // Normaliza algumas abreviações comuns PT-BR p/ referência
+  function normalizeRefPT(s){
+    return s
+      .replace(/^sl\b/i, "sl")   // Salmos -> sl
+      .replace(/^gn\b/i, "gn")   // Gênesis -> gn
+      .replace(/^jo\b/i, "jo")   // João -> jo (abbrev da API)
+      .trim();
   }
 
   try {
-    if ((trad === "nvi" || trad === "acf") && token) {
-      // A Bíblia Digital – documentação: https://www.abibliadigital.com.br/
-      // 1) referência direta (ex.: João 3:16)
-      if (isRef) {
-        const ref = encodeURIComponent(q.trim());
-        const r = await fetch(`https://www.abibliadigital.com.br/api/verses/${trad}/${ref}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const j = await r.json();
-        if (j?.text) renderItem({ text: j.text, ref: `${j.book.name} ${j.chapter}:${j.number} (${trad.toUpperCase()})` });
-        else if (Array.isArray(j?.verses)) {
-          j.verses.forEach(v => renderItem({ text: v.text, ref: `${j.book?.name || v.book?.name} ${v.chapter}:${v.number} (${trad.toUpperCase()})` }));
-        } else throw new Error("sem resultado");
+    if ((v === "nvi" || v === "acf")) {
+      if (refLike) {
+        const ref = encodeURIComponent(normalizeRefPT(q));
+        const r = await fetch(`https://www.abibliadigital.com.br/api/verses/${v}/${ref}`);
+        if (r.ok) {
+          const j = await r.json();
+          if (j?.text) {
+            renderItem({ text: j.text, ref: `${j.book.name} ${j.chapter}:${j.number} (${v.toUpperCase()})` });
+          } else if (Array.isArray(j?.verses)) {
+            j.verses.forEach(x => renderItem({ text: x.text, ref: `${(j.book?.name || x.book?.name)} ${x.chapter}:${x.number} (${v.toUpperCase()})` }));
+          } else {
+            results.innerHTML = `<div class="muted">Não encontrado.</div>`;
+          }
+          return;
+        }
+        // se caiu aqui, vamos tentar fallback KJV
       } else {
-        // 2) busca textual
-        const r = await fetch(`https://www.abibliadigital.com.br/api/verses/search?version=${trad}&search=${encodeURIComponent(q)}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const j = await r.json();
-        (j?.verses || []).slice(0, 50).forEach(v =>
-          renderItem({ text: v.text, ref: `${v.book.name} ${v.chapter}:${v.number} (${trad.toUpperCase()})` })
-        );
-        if (!j?.verses?.length) results.innerHTML = `<div class="muted">Nenhum resultado.</div>`;
+        const r = await fetch(`https://www.abibliadigital.com.br/api/verses/search?version=${v}&search=${encodeURIComponent(q)}`);
+        if (r.ok) {
+          const j = await r.json();
+          if (Array.isArray(j?.verses) && j.verses.length) {
+            j.verses.slice(0, 50).forEach(x =>
+              renderItem({ text: x.text, ref: `${x.book.name} ${x.chapter}:${x.number} (${v.toUpperCase()})` })
+            );
+            return;
+          } else {
+            results.innerHTML = `<div class="muted">Nenhum resultado.</div>`;
+            return;
+          }
+        }
+        // se a API pública recusar/limitar, cai no fallback KJV abaixo
+        info.innerHTML = "A API pública pode ter limitado as requisições no momento. Mostrando resultados em KJV (inglês).";
       }
-      return;
     }
 
-    // Fallback: bible-api.com (KJV)
-    if (isRef) {
+    // ===== Fallback KJV (bible-api.com) =====
+    if (refLike) {
       const r = await fetch(`https://bible-api.com/${encodeURIComponent(q)}?translation=kjv`);
       const j = await r.json();
       if (Array.isArray(j?.verses)) {
-        j.verses.forEach(v => renderItem({ text: v.text.trim(), ref: `${v.book_name} ${v.chapter}:${v.verse} (KJV)` }));
+        j.verses.forEach(vv => renderItem({ text: vv.text.trim(), ref: `${vv.book_name} ${vv.chapter}:${vv.verse} (KJV)` }));
       } else {
         results.innerHTML = `<div class="muted">Não encontrado.</div>`;
       }
     } else {
-      results.innerHTML = `<div class="muted">Para a busca em PT-BR sem token, digite uma referência (ex.: João 3:16) ou cadastre o token nas configurações.</div>`;
+      results.innerHTML = `<div class="muted">Para busca textual em português, tente novamente mais tarde ou use uma referência (ex.: João 3:16).</div>`;
     }
   } catch (e) {
     console.error(e);
@@ -109,14 +121,7 @@ async function searchBible(q, trad, token) {
   }
 }
 
-function escapeHTML(s){ return s.replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[m])) }
-
-/* ====== YouTube ======
-   Sem API key: usamos iframes.
-   - Live: https://www.youtube.com/embed/live_stream?channel=CHANNEL_ID
-           ou ...?channel=@handle (YouTube já aceita handle)
-   - Playlist de uploads: https://www.youtube.com/embed/videoseries?list=UU...
-*/
+/* ====== YouTube (sem API key; apenas iframes) ====== */
 function applyYouTubeEmbeds(cfg){
   const channel = cfg.ytChannel?.trim() || "@youtube";
   const uploads = cfg.ytUploads?.trim() || "";
@@ -126,19 +131,17 @@ function applyYouTubeEmbeds(cfg){
     : `https://www.youtube.com/embed?listType=user_uploads&list=${encodeURIComponent(channel.replace(/^@/,""))}`;
 }
 
-/* ====== Config modal ====== */
+/* ====== Config (apenas YouTube agora) ====== */
 function openConfig(){
   const cfg = store.get();
-  $("#bibliaToken").value = cfg.bibliaToken || "";
   $("#ytChannel").value   = cfg.ytChannel   || "";
   $("#ytUploads").value   = cfg.ytUploads   || "";
   $("#configModal").showModal();
 }
 function saveConfig(){
   const cfg = store.get();
-  cfg.bibliaToken = $("#bibliaToken").value.trim();
-  cfg.ytChannel   = $("#ytChannel").value.trim();
-  cfg.ytUploads   = $("#ytUploads").value.trim();
+  cfg.ytChannel = $("#ytChannel").value.trim();
+  cfg.ytUploads = $("#ytUploads").value.trim();
   store.set(cfg);
   applyYouTubeEmbeds(cfg);
 }
@@ -159,7 +162,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const q = $("#q").value.trim();
     if (!q) return;
     const trad = $("#trad").value;
-    const token = (store.get().bibliaToken || "").trim();
-    searchBible(q, trad, token);
+    searchBible(q, trad);
   });
 });
