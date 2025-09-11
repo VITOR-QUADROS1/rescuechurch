@@ -1,58 +1,64 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Igreja de Resgate</title>
-  <link rel="stylesheet" href="/assets/style.css" />
-</head>
-<body>
-  <div class="container">
-    <!-- HERO -->
-    <div class="hero"></div>
+<!-- topo / nav -->
+<div class="nav container">
+  <div class="logo">
+    <img src="assets/logo.png" alt="Rescue">
+    <strong>Igreja de Resgate</strong>
+  </div>
+  <div class="menu">
+    <a href="#inicio">Início</a>&nbsp;&nbsp;
+    <a href="#versiculo">Versículo do Dia</a>&nbsp;&nbsp;
+    <a href="#biblia">Buscar na Bíblia</a>&nbsp;&nbsp;
+    <a href="#videos">Vídeos & Lives</a>
+  </div>
+</div>
 
-    <!-- Versículo do Dia -->
-    <div class="card-block">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
-        <h2>Versículo do dia</h2>
-        <button id="btnCopy" class="btn">Copiar 📋</button>
-      </div>
-      <div id="verseText">Carregando...</div>
+<!-- hero -->
+<div class="container">
+  <div class="hero card"></div>
+</div>
+
+<!-- Versículo do dia -->
+<section id="versiculo" class="container section card">
+  <h2>Versículo do dia
+    <button id="copyVerseBtn" class="btn copy">Copiar 📋</button>
+  </h2>
+  <div id="verseText" class="mono">Carregando...</div>
+</section>
+
+<!-- Buscar na Bíblia -->
+<section id="biblia" class="container section card">
+  <h2>Buscar na Bíblia</h2>
+  <div class="row">
+    <div class="input">
+      <input id="bibleQuery" placeholder="Ex.: João 3:16 ou 'amor fé esperança'">
+      <select id="versionSelect"></select>
+    </div>
+    <button id="searchBtn" class="btn">Procurar</button>
+  </div>
+  <div id="bibleResult" class="result mono"></div>
+</section>
+
+<!-- Vídeos -->
+<section id="videos" class="container section card">
+  <h2>Vídeos & Lives</h2>
+
+  <div class="grid-vid">
+    <div class="live">
+      <h3>Ao vivo</h3>
+      <iframe id="liveFrame" allowfullscreen></iframe>
+      <div class="mono">Se estiver ao vivo, aparece aqui. Caso contrário, mostra o último vídeo.</div>
     </div>
 
-    <!-- Buscar na Bíblia -->
-    <div class="card-block">
-      <h2>Buscar na Bíblia</h2>
-      <div class="inline" style="margin:.6rem 0 0">
-        <input id="search" placeholder="Ex.: João 3:16 ou 'amor fé esperança'">
-        <select id="version"></select>
-        <button id="btnSearch" class="btn">Procurar</button>
-      </div>
-      <div id="results"></div>
-      <div class="muted" style="margin-top:.6rem">Dica: referências aceitam variações (“Joao 3:16”, “Salmos 23”).</div>
-    </div>
-
-    <!-- Vídeos & Lives -->
-    <div class="card-block">
-      <h2>Vídeos & Lives</h2>
-
-      <div class="row" style="margin-top:12px">
-        <div>
-          <h3>Ao vivo</h3>
-          <div id="live"></div>
-          <div class="muted" style="margin-top:.5rem">Se estiver ao vivo, aparece aqui. Caso contrário, mostra o último vídeo.</div>
-        </div>
-        <div>
-          <h3>Curtos</h3>
-          <div id="shortsRail" class="rail"></div>
-        </div>
-      </div>
-
-      <h3 style="margin-top:18px">Mensagens completas</h3>
-      <div id="fullRail" class="rail"></div>
+    <div>
+      <h3>Curtos</h3>
+      <div id="shortsRail" class="rail"></div>
     </div>
   </div>
 
-  <script src="/assets/app.js" defer></script>
-</body>
-</html>
+  <div style="margin-top:18px">
+    <h3>Mensagens completas</h3>
+    <div id="fullRail" class="rail"></div>
+  </div>
+</section>
+
+<script src="assets/app.js" defer></script>
