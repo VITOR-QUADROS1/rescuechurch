@@ -1,23 +1,21 @@
 {
-  "provider": "biblia",
-  "biblia": {
+  "provider": "biblia.com",
+  "bible": {
     "apiBase": "https://api.biblia.com/v1",
-    "versionMap": {
+    "versions": {
       "NVI (pt-BR)": "POR-NVI",
       "ARA (pt-BR)": "POR-ARA",
       "NTLH (pt-BR)": "POR-NTLH"
     },
     "defaultVersion": "NVI (pt-BR)"
   },
-
   "proxy": {
     "useWorker": true,
     "workerBase": "https://rescue-proxy.vitorpaulojuquadros.workers.dev"
   },
-
   "youtube": {
-    "channelId": "UCxxxxxxxxxxxxxxxx",        // <= troque por seu canal
-    "shortsPlaylist": "",                       // opcional (pode deixar vazio)
-    "fullPlaylist": ""                          // opcional (pode deixar vazio)
+    "channelId": "UCXXXXXXXXXXXXXXXXX",
+    "shortsPlaylist": "",
+    "fullPlaylist": ""
   }
 }
