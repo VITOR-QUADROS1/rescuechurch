@@ -1,240 +1,257 @@
-/* ===================== helpers & storage ===================== */
-const $ = (q) => document.querySelector(q);
-const strip = (s)=> s?.normalize?.("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim() || "";
+/* ================= helpers ================= */
+const $ = (q)=>document.querySelector(q);
+const strip = s => s?.normalize?.("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim() || "";
 function copyToClipboard(t){ navigator.clipboard?.writeText(t).catch(()=>{}); }
-function esc(s){ return s.replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m])); }
-
-async function fetchText(url, timeout=9000){
-  const ctrl = new AbortController(); const id = setTimeout(()=>ctrl.abort(), timeout);
-  try { const r = await fetch(url, {signal:ctrl.signal}); return await r.text(); }
-  finally { clearTimeout(id); }
-}
+function esc(s){ return (s||"").replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m])); }
 async function fetchJson(url, opts={}, timeout=9000){
-  const ctrl = new AbortController(); const id = setTimeout(()=>ctrl.abort(), timeout);
-  try { const r = await fetch(url, {...opts, signal:ctrl.signal}); return r; }
-  finally { clearTimeout(id); }
+  const ctrl=new AbortController(); const id=setTimeout(()=>ctrl.abort(), timeout);
+  try{ return await fetch(url,{...opts,signal:ctrl.signal}); } finally{ clearTimeout(id); }
 }
 
-/* ===================== config.json ===================== */
-let CFG = { siteTitle:"Rescue Church", yt:{}, cms:{} };
-async function loadConfig(){
-  try{
-    const r = await fetchJson("assets/config.json");
-    if (r.ok) CFG = await r.json();
-  }catch{}
+/* ============ A Bíblia Digital (pública, sem token) ============ */
+const ABD_HEADERS = { "Accept":"application/json" };
+
+/* ============ ACF por livro (pt-BR) ============ */
+/* Tenta jsDelivr e, se falhar, cai no raw.githubusercontent */
+const ACF_BASES = [
+  "https://cdn.jsdelivr.net/gh/thiagobodruk/bible/json/pt-br/acf",
+  "https://raw.githubusercontent.com/thiagobodruk/bible/master/json/pt-br/acf"
+];
+
+const BOOKS = (()=>{ // nome normalizado -> {name, abbr}
+  const map = {};
+  const add = (name, abbr, ...aliases)=>{
+    const k = strip(name).replace(/\s+/g,"");
+    map[k] = { name, abbr };
+    aliases.forEach(a=> map[strip(a).replace(/\s+/g,"")] = { name, abbr });
+  };
+  // VT
+  add("Gênesis","gn","genesis","gen","gensis");
+  add("Êxodo","ex","exodo");
+  add("Levítico","lv","levitico");
+  add("Números","nm","numeros");
+  add("Deuteronômio","dt","deuteronomio");
+  add("Josué","js","josue");
+  add("Juízes","jz","juizes","juizes");
+  add("Rute","rt");
+  add("1 Samuel","1sm","1 samuel","1samuel");
+  add("2 Samuel","2sm","2 samuel","2samuel");
+  add("1 Reis","1rs","1 reis","1reis");
+  add("2 Reis","2rs","2 reis","2reis");
+  add("1 Crônicas","1cr","1 cronicas","1cronicas");
+  add("2 Crônicas","2cr","2 cronicas","2cronicas");
+  add("Esdras","ed");
+  add("Neemias","ne");
+  add("Ester","et");
+  add("Jó","job","jo");
+  add("Salmos","sl","salmo","salmos","ps");
+  add("Provérbios","pv","proverbios","prov");
+  add("Eclesiastes","ec","eclesiastes");
+  add("Cantares de Salomão","ct","cantares","canticos","canticosdoscanticos");
+  add("Isaías","is","isaias");
+  add("Jeremias","jr");
+  add("Lamentações","lm","lamentacoes");
+  add("Ezequiel","ez");
+  add("Daniel","dn");
+  add("Oséias","os","oseias");
+  add("Joel","jl");
+  add("Amós","am","amos");
+  add("Obadias","ob");
+  add("Jonas","jn");
+  add("Miquéias","mq","miqueias");
+  add("Naum","na");
+  add("Habacuque","hc","habacuc","habacuque");
+  add("Sofonias","sf");
+  add("Ageu","ag");
+  add("Zacarias","zc");
+  add("Malaquias","ml");
+  // NT
+  add("Mateus","mt","matheus","mateus","mt");
+  add("Marcos","mc");
+  add("Lucas","lc");
+  add("João","jo","joao","evangelhodejoao");
+  add("Atos","at","atosdosapostolos");
+  add("Romanos","rm");
+  add("1 Coríntios","1co","1corintios","1 corintios");
+  add("2 Coríntios","2co","2corintios","2 corintios");
+  add("Gálatas","gl","galatas");
+  add("Efésios","ef","efesios");
+  add("Filipenses","fp","filipenses","fl","flp");
+  add("Colossenses","cl");
+  add("1 Tessalonicenses","1ts","1tessalonicenses","1 tessalonicenses");
+  add("2 Tessalonicenses","2ts","2tessalonicenses","2 tessalonicenses");
+  add("1 Timóteo","1tm","1timoteo");
+  add("2 Timóteo","2tm","2timoteo");
+  add("Tito","tt");
+  add("Filemom","fm","filemon","fm");
+  add("Hebreus","hb");
+  add("Tiago","tg");
+  add("1 Pedro","1pe");
+  add("2 Pedro","2pe");
+  add("1 João","1jo","1joao");
+  add("2 João","2jo","2joao");
+  add("3 João","3jo","3joao");
+  add("Judas","jd");
+  add("Apocalipse","ap");
+  return map;
+})();
+
+function findBookAbbr(input){
+  const key = strip(input).replace(/\s+/g,"");
+  return BOOKS[key] || null;
 }
 
-/* ===================== Google Sheets ===================== */
-async function readSheet(sheetId, tab){
-  // endpoint "gviz" retorna JS encapsulado; extraímos só o JSON
-  const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(tab)}`;
-  const raw = await fetchText(url);
-  const json = JSON.parse(raw.substring(raw.indexOf('{'), raw.lastIndexOf('}')+1));
-  const cols = json.table.cols.map(c => (c.label || c.id || "").toString().trim().toLowerCase());
-  const rows = json.table.rows.map(r=>{
-    const o={}; r.c?.forEach((c,i)=>{ o[cols[i]||`c${i}`] = c ? (c.v ?? "") : "" }); return o;
-  });
-  return rows;
-}
-
-/* ===================== Bíblia – ACF JSON (fallback) ===================== */
-const ACF_JSON_URL = "https://cdn.jsdelivr.net/gh/thiagobodruk/bible/json/pt-br/acf.json";
-async function loadAcfJson(){
-  const key="rc:acf_json";
-  const c = localStorage.getItem(key);
+async function loadAcfBook(abbr){
+  const cacheKey = `rc:acf:${abbr}`;
+  const c = localStorage.getItem(cacheKey);
   if (c) try{ return JSON.parse(c); }catch{}
-  const r = await fetchJson(ACF_JSON_URL);
-  const j = await r.json();
-  localStorage.setItem(key, JSON.stringify(j));
-  return j;
+  let data=null;
+  for (const base of ACF_BASES){
+    try{
+      const r = await fetchJson(`${base}/${abbr}.json`);
+      if (r.ok){ data = await r.json(); break; }
+    }catch{}
+  }
+  if (!data) throw new Error("ACF book not found: "+abbr);
+
+  // normalizar para { name, chapters: string[][] }
+  let name = data.book?.name || data.name || data.book || abbr.toUpperCase();
+  let chapters = Array.isArray(data.chapters) ? data.chapters
+                : Array.isArray(data) ? data
+                : data.chapter || data.capitulos || [];
+  const norm = { name, chapters };
+  localStorage.setItem(cacheKey, JSON.stringify(norm));
+  return norm;
 }
-async function buildBookIndex(){
-  const idx = {};
-  const acf = await loadAcfJson();
-  const norm = (s)=> strip(s).replace(/\s+/g,"");
-  acf.forEach(b=>{ idx[norm(b.name)] = b.name; });
-  Object.assign(idx, {
-    mateus:"Mateus", matheus:"Mateus", mt:"Mateus",
-    joao:"João", jo:"João", evangelhodejoao:"João",
-    salmos:"Salmos", salmo:"Salmos", ps:"Salmos",
-    genesis:"Gênesis", gen:"Gênesis", exodo:"Êxodo", ex:"Êxodo",
-    proverbios:"Provérbios", prov:"Provérbios",
-    cantares:"Cantares de Salomão", canticos:"Cantares de Salomão", canticosdoscanticos:"Cantares de Salomão",
-    eclesiastes:"Eclesiastes",
-    "1reis":"1 Reis","2reis":"2 Reis",
-    "1samuel":"1 Samuel","2samuel":"2 Samuel", samuel:"1 Samuel",
-    "1corintios":"1 Coríntios","2corintios":"2 Coríntios", corintios:"1 Coríntios",
-    "1joao":"1 João","2joao":"2 João","3joao":"3 João",
-    "1timoteo":"1 Timóteo","2timoteo":"2 Timóteo", timoteo:"1 Timóteo"
-  });
-  return idx;
+
+/* ============ Versículo do dia ============ */
+async function verseOfDay(){
+  const t=$("#vday-text"), r=$("#vday-ref");
+
+  // 1) A Bíblia Digital (random NVI)
+  try{
+    const res = await fetchJson("https://www.abibliadigital.com.br/api/verses/nvi/random", {headers: ABD_HEADERS}, 8000);
+    if (res.ok){
+      const j=await res.json();
+      if (j?.text){
+        t.textContent=j.text.trim();
+        r.textContent=`${j.book.name} ${j.chapter}:${j.number} — NVI`;
+        $("#versiculo").addEventListener("click",()=>copyToClipboard(`${t.textContent} — ${r.textContent}`));
+        return;
+      }
+    }
+  }catch{}
+
+  // 2) Fallback ACF por livro (sempre funciona)
+  try{
+    const abbrs = ["gn","sl","pv","is","jo","mt","mc","lc","jo","rm","ap"];
+    const pick = a => a[Math.floor(Math.random()*a.length)];
+    const bk = await loadAcfBook(pick(abbrs));
+    const ci = Math.floor(Math.random()*bk.chapters.length);
+    const vs = bk.chapters[ci];
+    const vi = Math.floor(Math.random()*vs.length);
+    t.textContent = vs[vi];
+    r.textContent = `${bk.name || "ACF"} ${ci+1}:${vi+1} — ACF`;
+    $("#versiculo").addEventListener("click",()=>copyToClipboard(`${t.textContent} — ${r.textContent}`));
+    return;
+  }catch{}
+
+  // 3) Último recurso
+  t.textContent="O Senhor é o meu pastor; nada me faltará.";
+  r.textContent="Salmo 23:1 — (offline)";
 }
-function parseRefPT(raw, idx){
+
+/* ============ Busca bíblica ============ */
+function parseRefPT(raw){
+  // aceita "genesis 2:4", "1 joao 1:9", "joao 3"
   let s = strip(raw).replace(/[,;]+/g," ");
   s = s.replace(/\biii\b/g,"3").replace(/\bii\b/g,"2").replace(/\bi\b/g,"1");
   s = s.replace(/^([1-3])([a-z])/,"$1 $2");
   const m = /^(.+?)\s+(\d+)(?:[:.](\d+))?$/.exec(s);
   if (!m) return null;
-  const bookKey = m[1].replace(/\s+/g,"");
-  const bookName = idx[bookKey];
-  if (!bookName) return null;
-  return { bookName, chapter: parseInt(m[2],10), verse: m[3] ? parseInt(m[3],10) : null };
+  const book = findBookAbbr(m[1]); if (!book) return null;
+  return { book, chapter: parseInt(m[2],10), verse: m[3]?parseInt(m[3],10):null };
 }
 
-/* ===================== Versículo do Dia ===================== */
-// tenta Planilha -> A Bíblia Digital -> ACF JSON
-async function loadVerseOfDay(){
-  const t=$("#vday-text"), r=$("#vday-ref");
-  const today = new Date().toISOString().slice(0,10);
-
-  // 1) Planilha (aba versiculos)
-  try{
-    if (CFG.cms?.googleSheetId){
-      const rows = await readSheet(CFG.cms.googleSheetId, "versiculos");
-      const norm = (s)=> (s||"").toString().trim().slice(0,10);
-      let row = rows.find(x => norm(x.data) === today || norm(x.date) === today || norm(x.dia) === today);
-      if (!row){
-        const past = rows.filter(x => (norm(x.data)||norm(x.date)||norm(x.dia)) <= today);
-        row = past[past.length-1];
-      }
-      if (row && (row.texto || row.verso || row.verse)){
-        t.textContent = (row.texto || row.verso || row.verse).toString().trim();
-        const ref = row.referencia || row.ref || "";
-        const ver = row.versao || row.version || "";
-        r.textContent = `${ref}${ver ? " — "+ver : ""} • (planilha)`;
-        $("#versiculo").addEventListener("click", ()=>copyToClipboard(`${t.textContent} — ${r.textContent}`));
-        return;
-      }
-    }
-  }catch{}
-
-  // 2) A Bíblia Digital (NVI, sem token pode limitar)
-  try{
-    const headers = { "Accept":"application/json" };
-    const r1 = await fetchJson("https://www.abibliadigital.com.br/api/verses/nvi/random", { headers }, 8000);
-    if (r1.ok){
-      const j = await r1.json();
-      if (j?.text){
-        t.textContent = j.text.trim();
-        r.textContent = `${j.book.name} ${j.chapter}:${j.number} — NVI`;
-        $("#versiculo").addEventListener("click", ()=>copyToClipboard(`${t.textContent} — ${r.textContent}`));
-        return;
-      }
-    }
-  }catch{}
-
-  // 3) ACF JSON (sempre funciona)
-  try{
-    const acf = await loadAcfJson();
-    const pick = (arr)=> arr[Math.floor(Math.random()*arr.length)];
-    const book = pick(acf);
-    const cIdx = Math.floor(Math.random()*book.chapters.length);
-    const verses = book.chapters[cIdx];
-    const vIdx = Math.floor(Math.random()*verses.length);
-    t.textContent = verses[vIdx];
-    r.textContent = `${book.name} ${cIdx+1}:${vIdx+1} — ACF`;
-    $("#versiculo").addEventListener("click", ()=>copyToClipboard(`${t.textContent} — ${r.textContent}`));
-    return;
-  }catch{}
-
-  // 4) último recurso
-  t.textContent = "O Senhor é o meu pastor; nada me faltará.";
-  r.textContent = "Salmo 23:1 — (offline)";
-}
-
-/* ===================== Busca ===================== */
-async function searchBible(q, trad){
+async function searchBible(q, version){
   const results=$("#results"); results.innerHTML="";
   const info=$("#searchInfo"); info.textContent="";
 
-  const render = (v)=>{
+  const render = (text, ref) => {
     const el=document.createElement("div");
     el.className="result";
-    el.innerHTML = `<div>${esc(v.text)}</div><div class="ref">${esc(v.ref)}</div>`;
-    el.addEventListener("click", ()=>copyToClipboard(`${v.text} — ${v.ref}`));
+    el.innerHTML = `<div>${esc(text)}</div><div class="ref">${esc(ref)}</div>`;
+    el.addEventListener("click",()=>copyToClipboard(`${text} — ${ref}`));
     results.appendChild(el);
   };
 
-  // 1) A Bíblia Digital (se disponível)
+  // 1) Tenta A Bíblia Digital (pública) — referência e busca textual
   try{
-    const headers = { "Accept":"application/json" };
-    // referência?
-    const idx = await buildBookIndex();
-    const ref = parseRefPT(q, idx);
+    const ref = parseRefPT(q);
     if (ref){
-      // usamos ACF JSON para achar o nome, e A Bíblia Digital exige abreviação; resolvemos buscando /books e batendo por nome
-      const rB = await fetchJson("https://www.abibliadigital.com.br/api/books", { headers }, 8000);
-      if (rB.ok){
-        const books = await rB.json();
-        const b = books.find(x => strip(x.name) === strip(ref.bookName));
-        if (b){
-          const base = `https://www.abibliadigital.com.br/api/verses/${trad}/${b.abbrev.pt || b.abbrev.en}/${ref.chapter}`;
-          const url  = ref.verse ? `${base}/${ref.verse}` : base;
-          const r = await fetchJson(url, { headers }, 8000);
-          if (r.ok){
-            const j = await r.json();
-            if (j?.text){ render({text:j.text, ref:`${j.book.name} ${j.chapter}:${j.number} (${trad.toUpperCase()})`}); return; }
-            if (Array.isArray(j?.verses)){
-              j.verses.forEach(v=> render({text:v.text, ref:`${j.book.name} ${j.chapter}:${v.number} (${trad.toUpperCase()})`}));
-              return;
-            }
-          }
+      // Para ABD precisamos da abreviação deles; nossa abrev já bate (pt-br)
+      const base = `https://www.abibliadigital.com.br/api/verses/${version}/${ref.book.abbr}/${ref.chapter}`;
+      const url  = ref.verse ? `${base}/${ref.verse}` : base;
+      const r = await fetchJson(url, {headers: ABD_HEADERS}, 8000);
+      if (r.ok){
+        const j = await r.json();
+        if (j?.text){ render(j.text, `${j.book.name} ${j.chapter}:${j.number} (${version.toUpperCase()})`); return; }
+        if (Array.isArray(j?.verses)){
+          j.verses.forEach(v=>render(v.text, `${j.book.name} ${j.chapter}:${v.number} (${version.toUpperCase()})`));
+          return;
         }
       }
     }
-    // busca textual (GET evita preflight)
-    const rS = await fetchJson(`https://www.abibliadigital.com.br/api/verses/search?version=${trad}&search=${encodeURIComponent(q)}`, { headers }, 8000);
-    if (rS.ok){
-      const j2 = await rS.json();
+    const r2 = await fetchJson(`https://www.abibliadigital.com.br/api/verses/search?version=${version}&search=${encodeURIComponent(q)}`, {headers: ABD_HEADERS}, 8000);
+    if (r2.ok){
+      const j2 = await r2.json();
       if (Array.isArray(j2?.verses) && j2.verses.length){
-        j2.verses.slice(0,80).forEach(v=> render({text:v.text, ref:`${v.book.name} ${v.chapter}:${v.number} (${trad.toUpperCase()})`}));
+        j2.verses.slice(0,80).forEach(v=>render(v.text, `${v.book.name} ${v.chapter}:${v.number} (${version.toUpperCase()})`));
         return;
       }
     }
-    info.textContent = "A busca pública pode estar limitada agora. Usando alternativa ACF…";
+    info.textContent = "Não foi possível consultar a API agora. Usando alternativa ACF…";
   }catch{ info.textContent = "Não foi possível consultar a API agora. Usando alternativa ACF…"; }
 
-  // 2) Fallback PT-BR: ACF JSON (funciona sempre)
+  // 2) Fallback ACF por livro (pt-BR, sem limites)
   try{
-    const acf = await loadAcfJson();
-    const idx = await buildBookIndex();
-    const ref = parseRefPT(q, idx);
-
+    const ref = parseRefPT(q);
     if (ref){
-      const book = acf.find(b => strip(b.name) === strip(ref.bookName));
-      if (book){
-        const verses = book.chapters[ref.chapter-1] || [];
-        if (ref.verse){
-          const txt = verses[ref.verse-1];
-          if (txt){ render({text:txt, ref:`${book.name} ${ref.chapter}:${ref.verse} (ACF)`}); return; }
-        }else{
-          verses.forEach((txt,i)=> render({text:txt, ref:`${book.name} ${ref.chapter}:${i+1} (ACF)`}));
-          if (verses.length) return;
-        }
+      const book = await loadAcfBook(ref.book.abbr);
+      const verses = book.chapters[ref.chapter-1] || [];
+      if (ref.verse){
+        const txt = verses[ref.verse-1];
+        if (txt){ render(txt, `${book.name} ${ref.chapter}:${ref.verse} (ACF)`); return; }
+      }else if (verses.length){
+        verses.forEach((txt,i)=>render(txt, `${book.name} ${ref.chapter}:${i+1} (ACF)`));
+        return;
       }
     }
-
-    // busca textual simples
+    // busca textual simples no ACF (pode ser custoso; limitamos 80 resultados)
     const needle = strip(q);
-    const hits = [];
-    acf.forEach(b=>{
-      b.chapters.forEach((arr,ci)=>{
-        arr.forEach((txt,vi)=>{
-          if (strip(txt).includes(needle)){
-            hits.push({text:txt, ref:`${b.name} ${ci+1}:${vi+1} (ACF)`});
+    const abbrs = Object.values(BOOKS).map(x=>x.abbr);
+    let count=0;
+    for (const ab of abbrs){
+      const book = await loadAcfBook(ab);
+      for (let ci=0; ci<book.chapters.length && count<80; ci++){
+        const arr = book.chapters[ci] || [];
+        for (let vi=0; vi<arr.length && count<80; vi++){
+          if (strip(arr[vi]).includes(needle)){
+            render(arr[vi], `${book.name} ${ci+1}:${vi+1} (ACF)`); count++;
           }
-        });
-      });
-    });
-    if (hits.length){ hits.slice(0,80).forEach(render); return; }
+        }
+      }
+      if (count>=80) break;
+    }
+    if (count>0) return;
   }catch{}
 
-  // 3) Último fallback inglês (KJV)
+  // 3) Último fallback (KJV – inglês)
   try{
     const r = await fetchJson(`https://bible-api.com/${encodeURIComponent(q)}?translation=kjv`);
     const j = await r.json();
     if (Array.isArray(j?.verses) && j.verses.length){
-      j.verses.forEach(v=> render({text:v.text.trim(), ref:`${v.book_name} ${v.chapter}:${v.verse} (KJV)`}));
+      j.verses.forEach(v=>render(v.text.trim(), `${v.book_name} ${v.chapter}:${v.verse} (KJV)`));
       return;
     }
   }catch{}
@@ -242,59 +259,32 @@ async function searchBible(q, trad){
   results.innerHTML = `<div class="muted">Nenhum resultado. Tente uma referência (ex.: João 3:16) ou outra palavra.</div>`;
 }
 
-/* ===================== YouTube ===================== */
+/* ============ YouTube (continua como antes) ============ */
 function applyYouTubeEmbeds(){
-  const yt = CFG.yt || {};
-  const uc = (yt.channelUC || "").trim();
-  const uu = (yt.uploadsUU || "").trim();
-  const plShorts = (yt.shortsPlaylist || "").trim();
-  const plFull   = (yt.fullPlaylist || "").trim();
+  // Se quiser, preencha os IDs diretamente aqui por enquanto
+  const UC = ""; // ex.: UCxxxxxxxx...
+  const UU = ""; // ex.: UUxxxxxxxx...
+  const PL_SHORTS = ""; // ex.: PLxxxxxxxx...
+  const PL_FULL   = ""; // ex.: PLxxxxxxxx...
 
-  $("#liveFrame").src = uc.startsWith("UC")
-    ? `https://www.youtube.com/embed/live_stream?channel=${encodeURIComponent(uc)}&rel=0` : "";
-
-  $("#shortsFrame").src = plShorts
-    ? `https://www.youtube.com/embed/videoseries?list=${encodeURIComponent(plShorts)}`
-    : `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent("shorts Rescue Church")}`;
-
-  $("#fullFrame").src = plFull
-    ? `https://www.youtube.com/embed/videoseries?list=${encodeURIComponent(plFull)}`
-    : (uu.startsWith("UU")
-        ? `https://www.youtube.com/embed/videoseries?list=${encodeURIComponent(uu)}`
-        : `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent("Rescue Church pregação")}`);
+  $("#liveFrame")?.setAttribute("src", UC ? `https://www.youtube.com/embed/live_stream?channel=${encodeURIComponent(UC)}&rel=0` : "");
+  $("#shortsFrame")?.setAttribute("src", PL_SHORTS
+    ? `https://www.youtube.com/embed/videoseries?list=${encodeURIComponent(PL_SHORTS)}`
+    : `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent("shorts Rescue Church")}`);
+  $("#fullFrame")?.setAttribute("src", PL_FULL
+    ? `https://www.youtube.com/embed/videoseries?list=${encodeURIComponent(PL_FULL)}`
+    : (UU ? `https://www.youtube.com/embed/videoseries?list=${encodeURIComponent(UU)}`
+          : `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent("Rescue Church pregação")}`));
 }
 
-async function applyYouTubeFromSheet(){
-  if (!CFG.cms?.googleSheetId) return;
-  try{
-    const rows = await readSheet(CFG.cms.googleSheetId, "videos");
-    const get = (t)=> rows.find(r => (r.tipo||"").toString().trim().toLowerCase() === t)?.valor || "";
-    const uc  = get("channel_uc");
-    const uu  = get("uploads_uu");
-    const pls = get("shorts_playlist");
-    const plf = get("full_playlist");
-    if (uc || uu || pls || plf){
-      CFG.yt = { channelUC: uc, uploadsUU: uu, shortsPlaylist: pls, fullPlaylist: plf };
-    }
-  }catch{}
-}
-
-/* ===================== boot ===================== */
-document.addEventListener("DOMContentLoaded", async ()=>{
+/* ============ boot ============ */
+document.addEventListener("DOMContentLoaded", ()=>{
   try{ $("#yy").textContent = new Date().getFullYear(); }catch{}
-  await loadConfig();
-  document.title = CFG.siteTitle || document.title;
-  $(".brand h1").textContent = CFG.siteTitle || "Rescue Church";
-
-  await applyYouTubeFromSheet();
   applyYouTubeEmbeds();
-
-  loadVerseOfDay().catch(()=>{});
-
-  $("#searchForm").addEventListener("submit", (e)=>{
+  verseOfDay().catch(()=>{});
+  $("#searchForm")?.addEventListener("submit",(e)=>{
     e.preventDefault();
-    const q = $("#q").value.trim();
-    if (!q) return;
+    const q=$("#q").value.trim(); if(!q) return;
     searchBible(q, $("#trad").value);
   });
 });
