@@ -1,18 +1,16 @@
 {
-  "proxy": {
-    "workerBase": "https://rescue-proxy.vitorpaulojquadros.workers.dev"
-  },
+  "provider": "biblia",
   "biblia": {
-    "defaultVersion": "POR-NTLH",
+    "apiBase": "https://api.biblia.com/v1",
     "versions": {
-      "NTLH (pt-BR)": "POR-NTLH",
+      "NVI (pt-BR)": "POR-NVI",
       "ARA (pt-BR)": "POR-ARA",
-      "NVI (pt-BR)": "POR-NVI"
-    }
+      "NTLH (pt-BR)": "POR-NTLH"
+    },
+    "defaultVersion": "POR-NTLH"
   },
-  "youtube": {
-    "channelId": "UCxxxxxxxxxxxxxxxxxxxxxx",
-    "shortsPlaylist": "",
-    "fullPlaylist": ""
+  "proxy": {
+    "useWorker": true,
+    "workerBase": "https://rescue-proxy.vitorpaulojquadros.workers.dev"
   }
 }
