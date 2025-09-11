@@ -1,156 +1,184 @@
-(async () => {
-  const ui = {
-    year: document.getElementById('year'),
-    dailyVerse: document.getElementById('dailyVerse'),
-    dailyRef: document.getElementById('dailyRef'),
-    dailyHint: document.getElementById('dailyHint'),
-    copy: document.getElementById('copyVerse'),
-    searchForm: document.getElementById('searchForm'),
-    searchInput: document.getElementById('searchInput'),
-    versionSelect: document.getElementById('versionSelect'),
-    result: document.getElementById('result'),
-    liveFrame: document.getElementById('liveFrame'),
-    shortsFrame: document.getElementById('shortsFrame'),
-    fullFrame: document.getElementById('fullFrame'),
-  };
+// Carrega config
+const cfg = await fetch('assets/config.json').then(r => r.json());
 
-  ui.year.textContent = new Date().getFullYear();
+// Utilidades
+const $ = s => document.querySelector(s);
+const year = new Date().getFullYear();
+$('#year').textContent = year;
 
-  // Carrega config
-  const config = await fetch('assets/config.json').then(r => r.json());
+// Preenche versões no select
+const verSel = $('#ver');
+Object.keys(cfg.biblia.versions).forEach(label=>{
+  const opt = document.createElement('option');
+  opt.textContent = label;
+  opt.value = cfg.biblia.versions[label];
+  if(label === cfg.biblia.defaultVersion) opt.selected = true;
+  verSel.appendChild(opt);
+});
 
-  // Monta opções de versão
-  const entries = Object.entries(config.biblia.versions);
-  const defaultLabel = config.biblia.defaultVersion;
-  for (const [label] of entries) {
-    const opt = document.createElement('option');
-    opt.value = label;
-    opt.textContent = label;
-    if (label === defaultLabel) opt.selected = true;
-    ui.versionSelect.appendChild(opt);
+// ======== HERO (nada a fazer, imagem ajusta pelo CSS) ========
+
+// ======== LIVE (ao vivo) ========
+function setLiveEmbed() {
+  const ch = cfg.youtube.channelId;
+  if(!ch) return;
+  $('#liveFrame').src = `https://www.youtube.com/embed/live_stream?channel=${encodeURIComponent(ch)}&rel=0`;
+}
+setLiveEmbed();
+
+// ======== BÍBLIA — helpers de fetch ========
+const workerBase = cfg.proxy.useWorker ? cfg.proxy.workerBase : null;
+const API_BASE = cfg.biblia.apiBase;
+
+async function viaWorker(path) {
+  if(!workerBase) throw new Error('worker desativado');
+  const url = `${workerBase}${path}`;
+  const r = await fetch(url);
+  if(!r.ok) throw new Error(`worker ${r.status}`);
+  return r;
+}
+async function viaDirect(pathWithQuery) {
+  // ATENÇÃO: sem key aqui; o ideal é o Worker. Mantemos direto apenas se o Worker falhar e você tiver key pública (não recomendado).
+  throw new Error('Direto desativado por segurança. Use o Worker.');
+}
+
+// busca passagem (ex: "Joao 3:16")
+async function getPassage(passage, verCode) {
+  // Worker injeta BIBLIA_API_KEY e faz CORS
+  const path = `/biblia/bible/content/${encodeURIComponent(verCode)}.txt?passage=${encodeURIComponent(passage)}`;
+  try {
+    const r = await viaWorker(path);
+    return await r.text();
+  } catch (e) {
+    console.error('getPassage:', e);
+    return null;
+  }
+}
+
+// busca por palavra (modo: versos)
+async function searchVerses(query, verCode, limit = 5) {
+  const path = `/biblia/bible/search/${encodeURIComponent(verCode)}.js?query=${encodeURIComponent(query)}&mode=verse&start=0&limit=${limit}`;
+  try {
+    const r = await viaWorker(path);
+    const js = await r.json();
+    return js.results?.map(v => `• ${v.title}\n${v.preview}\n`).join('\n') || null;
+  } catch (e) {
+    console.error('searchVerses:', e);
+    return null;
+  }
+}
+
+// ======== VERSÍCULO DO DIA ========
+const versList = [
+  "Salmos 23:1-3", "Filipenses 4:6-7", "Provérbios 3:5-6", "Romanos 8:28",
+  "Mateus 11:28-30", "Isaías 41:10", "Salmos 46:1-2", "João 14:27",
+  "Salmos 121:1-2", "Hebreus 11:1", "Jeremias 29:11", "João 3:16"
+];
+function pickVerseOfDay() {
+  const d0 = new Date(Date.UTC(new Date().getUTCFullYear(),0,1));
+  const today = new Date();
+  const day = Math.floor((today - d0)/86400000);
+  return versList[day % versList.length];
+}
+async function loadVerseOfDay() {
+  const ver = verSel.value || cfg.biblia.versions[cfg.biblia.defaultVersion];
+  const ref = pickVerseOfDay();
+  const txt = await getPassage(ref, ver);
+  if(txt) {
+    $('#textoDia').textContent = txt.trim();
+    $('#refDia').textContent = ref + ' — ' + labelByCode(ver);
+  } else {
+    $('#textoDia').textContent = 'Não foi possível carregar agora.';
+    $('#refDia').textContent = 'Tente novamente mais tarde.';
+  }
+}
+function labelByCode(code){
+  return Object.entries(cfg.biblia.versions).find(([,v])=>v===code)?.[0] ?? code;
+}
+loadVerseOfDay();
+
+// Copiar
+$('#btnCopiar').addEventListener('click', ()=>{
+  const t = $('#textoDia').textContent.trim();
+  const r = $('#refDia').textContent.trim();
+  if(!t) return;
+  navigator.clipboard.writeText(`${t}\n${r}`);
+});
+
+// ======== BUSCA ========
+$('#btnBuscar').addEventListener('click', onBuscar);
+
+async function onBuscar(){
+  const q = $('#q').value.trim();
+  const ver = $('#ver').value;
+  const $out = $('#resultado');
+  $out.textContent = 'Buscando...';
+
+  if(!q){
+    $out.textContent = 'Digite uma referência (ex.: João 3:16) ou palavra (ex.: amor).';
+    return;
   }
 
-  // YouTube embeds
-  if (config.youtube?.channelId) {
-    ui.liveFrame.src = `https://www.youtube.com/embed/live_stream?channel=${config.youtube.channelId}`;
+  // tem número? tratamos como referência (passagem)
+  const isRef = /\d/.test(q);
+  if(isRef){
+    const txt = await getPassage(q, ver);
+    $out.textContent = txt ? txt.trim() : 'Nenhum resultado agora. Tente outra referência.';
+  }else{
+    const list = await searchVerses(q, ver, 8);
+    $out.textContent = list || 'Nenhum resultado agora. Tente outra palavra.';
   }
-  if (config.youtube?.shortsPlaylist) {
-    ui.shortsFrame.src = `https://www.youtube.com/embed/videoseries?list=${config.youtube.shortsPlaylist}`;
+}
+
+// ======== VÍDEOS — Feeds via Worker (CORS ok) ========
+async function fetchPlaylistItems(playlistId) {
+  const url = `/api/youtube?playlist=${encodeURIComponent(playlistId)}`;
+  try{
+    const xml = await (await viaWorker(url)).text();
+    const dom = new DOMParser().parseFromString(xml, 'application/xml');
+    const entries = [...dom.querySelectorAll('entry')];
+    return entries.map(e=>{
+      const id = e.querySelector('yt\\:videoId, videoId')?.textContent ?? '';
+      const title = e.querySelector('title')?.textContent ?? '';
+      const published = e.querySelector('published')?.textContent ?? '';
+      return { id, title, published };
+    });
+  }catch(e){
+    console.error('playlist fetch', e);
+    return [];
   }
-  if (config.youtube?.fullPlaylist) {
-    ui.fullFrame.src = `https://www.youtube.com/embed/videoseries?list=${config.youtube.fullPlaylist}`;
-  }
-
-  // --------- Biblia.com Helpers ----------
-  const bibliaBase = config.proxy?.useWorker ? config.proxy.workerBase : config.biblia.apiBase;
-  const apiKeyParam = config.proxy?.useWorker ? '' : `&key=${encodeURIComponent(config.biblia.apiKey)}`;
-
-  function bibleIdByLabel(label) {
-    return config.biblia.versions[label] || config.biblia.versions[defaultLabel];
-  }
-
-  async function fetchPassage(ref, labelVersion) {
-    const bibleId = bibleIdByLabel(labelVersion);
-    // content endpoint — texto limpo, um versículo por linha
-    const url = `${bibliaBase}/bible/content/${bibleId}.json?passage=${encodeURIComponent(ref)}&style=oneVersePerLine&red-letter=false&footnotes=false&formatting=plain${apiKeyParam}`;
-    const r = await fetch(url);
-    if (!r.ok) throw new Error('Falha ao buscar passagem');
-    const data = await r.json();
-    // campos usuais: data.text, data.canonical, data.citation
-    return {
-      text: data.text?.trim() || '',
-      ref: data.citation || data.canonical || ref
-    };
-  }
-
-  async function searchWord(query, labelVersion) {
-    const bibleId = bibleIdByLabel(labelVersion);
-    const url = `${bibliaBase}/bible/search/${bibleId}.json?query=${encodeURIComponent(query)}&mode=verse${apiKeyParam}`;
-    const r = await fetch(url);
-    if (!r.ok) throw new Error('Falha na busca');
-    const data = await r.json();
-    // Pega o primeiro resultado de versículo
-    const first = data.results?.[0];
-    if (!first) return null;
-    // geralmente first.reference ou first.title tem “João 3:16”
-    const ref = first.reference || first.title || first.verse || first.citation;
-    if (!ref) return null;
-    return await fetchPassage(ref, labelVersion);
-  }
-
-  // ---------- Versículo do dia ----------
-  // Lista enxuta (pode crescer até 365 refs)
-  const DAILY_REFS = [
-    "Salmos 23:1", "Provérbios 3:5", "Isaías 41:10", "Jeremias 29:11",
-    "Mateus 6:33", "Mateus 11:28", "João 3:16", "João 14:6",
-    "Romanos 8:28", "Filipenses 4:6", "Filipenses 4:13", "1 Pedro 5:7",
-    "Hebreus 11:1", "Salmos 121:1-2", "Salmos 91:1-2", "Romanos 12:2",
-    "Tiago 1:5", "Salmos 46:1", "João 10:10", "Efésios 2:8-9",
-    "Gênesis 1:1", "Mateus 5:9", "Salmos 37:5", "Isaías 53:5"
-  ];
-
-  function dayOfYear(d = new Date()) {
-    const start = new Date(d.getFullYear(), 0, 0);
-    const diff = d - start;
-    return Math.floor(diff / 86400000);
-  }
-
-  async function loadDaily() {
-    try {
-      const idx = dayOfYear() % DAILY_REFS.length;
-      const ref = DAILY_REFS[idx];
-      const pass = await fetchPassage(ref, ui.versionSelect.value);
-      ui.dailyVerse.textContent = pass.text || '(sem texto)';
-      ui.dailyRef.textContent = pass.ref || ref;
-      ui.dailyHint.textContent = '';
-    } catch (e) {
-      ui.dailyVerse.textContent = 'Não foi possível carregar agora.';
-      ui.dailyRef.textContent = '';
-      ui.dailyHint.textContent = 'Tente novamente em instantes.';
-      console.error(e);
-    }
-  }
-
-  ui.copy.addEventListener('click', async () => {
-    try {
-      const full = `${ui.dailyRef.textContent} — ${ui.dailyVerse.textContent}`;
-      await navigator.clipboard.writeText(full.trim());
-      ui.copy.textContent = 'Copiado ✔️';
-      setTimeout(() => ui.copy.textContent = 'Copiar 📋', 1800);
-    } catch {}
+}
+function ytThumb(id){ return `https://i.ytimg.com/vi/${id}/hqdefault.jpg`; }
+function fmtDate(iso){
+  try{
+    return new Intl.DateTimeFormat('pt-BR',{dateStyle:'medium'}).format(new Date(iso));
+  }catch{ return ''; }
+}
+function renderRow(el, items){
+  el.innerHTML = '';
+  items.forEach(v=>{
+    const c = document.createElement('a');
+    c.className = 'card-video';
+    c.href = `https://www.youtube.com/watch?v=${v.id}`;
+    c.target = '_blank';
+    c.rel = 'noopener';
+    c.innerHTML = `
+      <img class="thumb" alt="" loading="lazy" src="${ytThumb(v.id)}">
+      <div class="meta">
+        <div class="title">${v.title}</div>
+        <div class="when">${fmtDate(v.published)}</div>
+      </div>`;
+    el.appendChild(c);
   });
-
-  await loadDaily();
-
-  // ---------- Busca ----------
-  ui.searchForm.addEventListener('submit', async (ev) => {
-    ev.preventDefault();
-    ui.result.innerHTML = '';
-    const q = ui.searchInput.value.trim();
-    if (!q) return;
-
-    const labelVersion = ui.versionSelect.value;
-
-    // referência? (algo com número e dois pontos)
-    const isRef = /\d+:\d+/.test(q);
-
-    try {
-      const data = isRef
-        ? await fetchPassage(q, labelVersion)
-        : await searchWord(q, labelVersion);
-
-      if (!data) {
-        ui.result.innerHTML = `<div class="head">Nenhum resultado agora. Tente outra palavra ou referência (ex.: João 3:16).</div>`;
-        return;
-      }
-      ui.result.innerHTML = `
-        <div class="head">${data.ref || ''}</div>
-        <div class="text">${(data.text || '').replace(/\n/g,'<br/>')}</div>
-      `;
-    } catch (e) {
-      ui.result.innerHTML = `<div class="head">Falha ao consultar. Verifique a referência ou tente de novo.</div>`;
-      console.error(e);
-    }
-  });
-
+}
+(async function initPlaylists(){
+  const max = cfg.youtube.maxItems || 12;
+  if(cfg.youtube.shortsPlaylist){
+    const shorts = (await fetchPlaylistItems(cfg.youtube.shortsPlaylist)).slice(0,max);
+    renderRow($('#shortsRow'), shorts);
+  }
+  if(cfg.youtube.fullPlaylist){
+    const full = (await fetchPlaylistItems(cfg.youtube.fullPlaylist)).slice(0,max);
+    renderRow($('#fullRow'), full);
+  }
 })();
