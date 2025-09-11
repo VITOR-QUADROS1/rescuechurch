@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="assets/style.css" />
   <link rel="preconnect" href="https://i.ytimg.com">
   <link rel="preconnect" href="https://www.youtube.com">
-  <meta name="description" content="Site oficial da Rescue Church – Palavra diária, busca bíblica e transmissões ao vivo."/>
+  <meta name="description" content="Site oficial da Rescue Church – Palavra que transforma, comunidade que abraça."/>
 </head>
 <body>
   <header class="topbar">
@@ -25,6 +25,7 @@
   </header>
 
   <main id="inicio" class="container">
+    <!-- HERO exatamente como solicitado e centralizado -->
     <section id="hero" class="card hero">
       <div>
         <h2>Rescue Church</h2>
@@ -56,27 +57,41 @@
 
     <section id="midia" class="card">
       <h3>Vídeos & Lives</h3>
-      <div class="grid-2">
+
+      <!-- Ao vivo -->
+      <div>
+        <h4>Ao vivo</h4>
+        <div class="video-wrapper">
+          <iframe id="liveFrame"
+            src="" title="Transmissão ao vivo" frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowfullscreen></iframe>
+        </div>
+        <p class="muted">Se estiver ao vivo, aparecerá aqui. Caso contrário, mostrará a última live.</p>
+      </div>
+
+      <!-- Faixas: curtos x completos -->
+      <div class="grid-2" style="margin-top:1rem">
         <div>
-          <h4>Ao vivo</h4>
+          <h4>Vídeos curtos</h4>
           <div class="video-wrapper">
-            <iframe id="liveFrame"
-              src="" title="Transmissão ao vivo" frameborder="0"
+            <iframe id="shortsFrame"
+              src="" title="Shorts do canal" frameborder="0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowfullscreen></iframe>
           </div>
-          <p class="muted">Se estiver ao vivo, aparecerá aqui. Caso contrário, mostrará a última live.</p>
+          <p class="muted">Lista com Shorts (ou busca por “shorts” se a playlist não for informada).</p>
         </div>
 
         <div>
-          <h4>Últimos vídeos</h4>
+          <h4>Mensagens completas</h4>
           <div class="video-wrapper">
-            <iframe id="playlistFrame"
-              src="" title="Uploads do canal" frameborder="0"
+            <iframe id="fullFrame"
+              src="" title="Mensagens do canal" frameborder="0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowfullscreen></iframe>
           </div>
-          <p class="muted">Lista dos vídeos mais recentes do canal no YouTube.</p>
+          <p class="muted">Playlist de mensagens (ou uploads do canal se a playlist não for informada).</p>
         </div>
       </div>
     </section>
@@ -90,14 +105,25 @@
   <dialog id="configModal" class="modal">
     <form method="dialog" class="card">
       <h3>Configurações</h3>
+
       <div class="row">
-        <label class="lbl">YouTube – Identificador do canal (handle <b>@rescuechurch</b> ou <b>ID do canal</b>)
-          <input id="ytChannel" class="input" placeholder="@seucanal ou UCxxxxxxxxxx"/>
+        <label class="lbl">YouTube – Identificador do canal (handle <b>@seucanal</b> ou <b>ID UC…</b>)
+          <input id="ytChannel" class="input" placeholder="@RescueChuchoficial ou UCxxxxxxxxxxxxxxxxxxxx"/>
         </label>
-        <label class="lbl">YouTube – ID da playlist de uploads (começa com <b>UU</b>)
+        <label class="lbl">YouTube – ID da playlist de uploads (começa com <b>UU</b>) – opcional
           <input id="ytUploads" class="input" placeholder="UUxxxxxxxxxxxxxxxx"/>
         </label>
       </div>
+
+      <div class="row">
+        <label class="lbl">YouTube – Playlist de <b>Shorts</b> (PL…) – opcional
+          <input id="ytShortsPL" class="input" placeholder="PLxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"/>
+        </label>
+        <label class="lbl">YouTube – Playlist de <b>Mensagens completas</b> (PL…) – opcional
+          <input id="ytFullPL" class="input" placeholder="PLxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"/>
+        </label>
+      </div>
+
       <menu class="actions">
         <button value="cancel" class="btn ghost">Cancelar</button>
         <button id="saveCfg" class="btn primary" value="default">Salvar</button>
