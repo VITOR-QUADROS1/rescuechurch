@@ -2,31 +2,22 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Igreja de Resgate — Rescue Church</title>
-  <meta name="description" content="Palavra que transforma, comunidade que abraça." />
-
-  <!-- Fonte e ícones -->
-  <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;600;800&display=swap" rel="stylesheet">
-  <link rel="icon" href="assets/logo.png" />
-
-  <!-- Estilos -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="assets/style.css" />
+  <link rel="icon" href="assets/logo.png" />
 </head>
 <body>
-  <!-- BG futurista -->
-  <div class="bg"></div>
-  <div class="bg-glow glow-1"></div>
-  <div class="bg-glow glow-2"></div>
-
-  <!-- Navbar -->
-  <header class="nav">
-    <div class="container nav-inner">
-      <a class="brand" href="#inicio">
+  <header class="topbar">
+    <div class="container">
+      <div class="brand">
         <img src="assets/logo.png" alt="Rescue Church" />
         <span>Igreja de Resgate</span>
-      </a>
-      <nav class="links">
+      </div>
+      <nav class="nav">
         <a href="#inicio">Início</a>
         <a href="#versiculo">Versículo do Dia</a>
         <a href="#biblia">Buscar na Bíblia</a>
@@ -35,76 +26,69 @@
     </div>
   </header>
 
-  <!-- Hero -->
-  <main id="inicio" class="container hero card">
-    <div class="hero-media">
-      <img class="hero-logo" src="assets/logo.png" alt="Logo Rescue Church">
-    </div>
-    <div class="hero-text">
-      <h1>Igreja de Resgate</h1>
-      <p>Palavra que transforma, comunidade que abraça.</p>
-    </div>
+  <main id="inicio" class="container">
+    <!-- HERO: somente imagem central -->
+    <section class="hero card glass">
+      <img class="hero-logo" src="assets/logo.png" alt="Rescue Church" />
+      <!-- Se quiser voltar com textos, é só remover a classe sr-only abaixo -->
+      <div class="sr-only">
+        <h1>Igreja de Resgate</h1>
+        <p>Palavra que transforma, comunidade que abraça.</p>
+      </div>
+    </section>
+
+    <section id="versiculo" class="card glass">
+      <div class="card-head">
+        <h2>Versículo do dia</h2>
+        <button id="copyVerse" class="btn">Copiar 📋</button>
+      </div>
+      <p id="dailyVerse" class="verse">Carregando...</p>
+      <small id="dailyRef" class="ref"></small>
+      <div id="dailyHint" class="hint"></div>
+    </section>
+
+    <section id="biblia" class="card glass">
+      <h2>Buscar na Bíblia</h2>
+      <form id="searchForm" class="search">
+        <input id="searchInput" type="text" placeholder="Ex.: João 3:16 ou 'amor fé esperança'" />
+        <select id="versionSelect"></select>
+        <button class="btn" type="submit">Procurar</button>
+      </form>
+      <small class="hint">Dica: referências aceitam variações (“Joao 3:16”, “Salmos 23”).</small>
+      <div id="result" class="result"></div>
+    </section>
+
+    <section id="videos" class="card glass">
+      <h2>Vídeos & Lives</h2>
+      <div class="grid-2">
+        <div>
+          <h3>Ao vivo</h3>
+          <div class="ratio">
+            <iframe id="liveFrame" src="" title="Live" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>
+          </div>
+          <small>Se estiver ao vivo, aparece aqui. Caso contrário, mostra a última live.</small>
+        </div>
+        <div>
+          <h3>Curtos</h3>
+          <div class="ratio">
+            <iframe id="shortsFrame" src="" title="Shorts" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>
+          </div>
+        </div>
+      </div>
+
+      <div class="stack">
+        <h3>Mensagens completas</h3>
+        <div class="ratio wide">
+          <iframe id="fullFrame" src="" title="Mensagens" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <p>© <span id="year"></span> Igreja de Resgate — feito com amor</p>
+    </footer>
   </main>
 
-  <!-- Versículo do dia -->
-  <section id="versiculo" class="container card">
-    <h2>Versículo do dia</h2>
-    <div id="verseBox" class="verse">
-      <div id="verseText" class="verse-text">Carregando...</div>
-      <div id="verseRef" class="verse-ref"></div>
-      <button id="copyVerse" class="btn small" aria-label="Copiar versículo">Copiar 📋</button>
-    </div>
-    <small class="muted" id="verseHint"></small>
-  </section>
-
-  <!-- Busca na Bíblia -->
-  <section id="biblia" class="container card">
-    <h2>Buscar na Bíblia</h2>
-    <form id="searchForm" class="search-row">
-      <input id="searchInput" class="input" type="text" placeholder="Ex.: João 3:16 ou 'amor fé esperança'">
-      <select id="versionSelect" class="select">
-        <option value="nvi">NVI (pt-BR)</option>
-        <option value="acf">ACF (pt-BR)</option>
-        <option value="kjv">KJV (en) — fallback</option>
-      </select>
-      <button class="btn" type="submit">Procurar</button>
-    </form>
-    <div id="searchResults" class="results"></div>
-    <small class="muted">Dica: referências aceitam variações (“Joao 3:16”, “Salmos 23”).</small>
-  </section>
-
-  <!-- Vídeos -->
-  <section id="videos" class="container card">
-    <h2>Vídeos & Lives</h2>
-    <div class="grid-2">
-      <div>
-        <h3>Ao vivo</h3>
-        <div class="iframe-wrap" id="liveWrap">
-          <div class="placeholder">Configure o <code>channelId</code> em <code>assets/config.json</code></div>
-        </div>
-        <small class="muted">Se estiver ao vivo, aparece aqui; senão, mostra a última live.</small>
-      </div>
-      <div>
-        <h3>Curtos</h3>
-        <div class="iframe-wrap" id="shortsWrap">
-          <div class="placeholder">Defina <code>shortsPlaylistId</code> no <code>assets/config.json</code></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="stack">
-      <h3>Mensagens completas</h3>
-      <div class="iframe-wrap" id="fullWrap">
-        <div class="placeholder">Defina <code>fullPlaylistId</code> no <code>assets/config.json</code></div>
-      </div>
-    </div>
-  </section>
-
-  <footer class="container foot muted">
-    © <span id="year"></span> Igreja de Resgate — feito com amor
-  </footer>
-
-  <!-- Config + App -->
-  <script defer src="assets/app.js"></script>
+  <script src="assets/app.js" defer></script>
 </body>
 </html>
