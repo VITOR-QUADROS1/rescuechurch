@@ -45,9 +45,9 @@
       <form id="searchForm" class="row">
         <input id="q" class="input" placeholder="Ex.: João 3:16 ou 'amor fé esperança'" />
         <select id="trad" class="input">
-          <option value="nvi">NVI (pt-BR) – requer token</option>
-          <option value="acf">ACF (pt-BR) – requer token</option>
-          <option value="kjv">KJV (en) – sem token (fallback)</option>
+          <option value="nvi">NVI (pt-BR)</option>
+          <option value="acf">ACF (pt-BR)</option>
+          <option value="kjv">KJV (en) – fallback</option>
         </select>
         <button class="btn primary" type="submit">Buscar</button>
       </form>
@@ -61,7 +61,6 @@
       <div class="grid-2">
         <div>
           <h4>Ao vivo</h4>
-          <!-- Troque CHANNEL_HANDLE ou CHANNEL_ID conforme instrução abaixo -->
           <div class="video-wrapper">
             <iframe id="liveFrame"
               src="" title="Transmissão ao vivo" frameborder="0"
@@ -73,7 +72,6 @@
 
         <div>
           <h4>Últimos vídeos</h4>
-          <!-- Use a playlist de uploads do canal (UU...) -->
           <div class="video-wrapper">
             <iframe id="playlistFrame"
               src="" title="Uploads do canal" frameborder="0"
@@ -90,21 +88,13 @@
     <small>© <span id="yy"></span> Rescue Church. Todos os direitos reservados.</small>
   </footer>
 
-  <!-- Modal de Configurações -->
+  <!-- Modal de Configurações (sem campo de token agora) -->
   <dialog id="configModal" class="modal">
     <form method="dialog" class="card">
       <h3>Configurações</h3>
 
-      <label class="lbl">Token da API “A Bíblia Digital” (opcional, para PT-BR)
-        <input id="bibliaToken" class="input" placeholder="Cole aqui seu token (Bearer)"/>
-      </label>
-      <p class="muted">
-        Obtenha grátis em <a href="https://www.abibliadigital.com.br/" target="_blank" rel="noopener">abibliadigital.com.br</a>.
-        Em GitHub Pages o token fica público; use apenas para baixo risco/limite.
-      </p>
-
       <div class="row">
-        <label class="lbl">YouTube – Identificador do canal (handle <b>@rescuechurch</b> ou <b>ID do canal</b>) 
+        <label class="lbl">YouTube – Identificador do canal (handle <b>@rescuechurch</b> ou <b>ID do canal</b>)
           <input id="ytChannel" class="input" placeholder="@seucanal ou UCxxxxxxxxxx"/>
         </label>
         <label class="lbl">YouTube – ID da playlist de uploads (começa com <b>UU</b>)
