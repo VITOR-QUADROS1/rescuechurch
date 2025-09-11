@@ -32,25 +32,18 @@ async function loadVerseOfDay() {
   });
 }
 
-/* ====== Busca Bíblica ======
-   1) Tenta a busca textual da A Bíblia Digital (PT-BR) sem token:
-      https://www.abibliadigital.com.br/api/verses/search?version=...&search=...
-   2) Se nada voltar (ou erro/limite), e a consulta parecer referência
-      (ex.: "João 3:16"), faz fallback em bible-api.com (KJV).
-*/
+/* ====== Busca Bíblica (PT-BR sem token + fallback KJV) ====== */
 function looksLikeReference(q){
   const s = strip(q.trim().toLowerCase());
-  // aceita: "joao 3:16", "1 joao 1:9-10", "sl 23", "gn 1:1"
   return /^[0-3]?\s?[a-z\.]+(\s+[a-z\.]+)?\s+\d+([:.]\d+(-\d+)?)?$/.test(s);
 }
-
 async function searchBible(q, trad) {
   const results = $("#results"); results.innerHTML = "";
   const info = $("#searchInfo"); info.textContent = "";
   const version = trad; // "nvi" | "acf" | "kjv"
   const refLike = looksLikeReference(q);
 
-  // 1) Tenta PT-BR (busca textual)
+  // 1) PT-BR (A Bíblia Digital – busca pública)
   if (version === "nvi" || version === "acf") {
     try {
       const url = `https://www.abibliadigital.com.br/api/verses/search?version=${version}&search=${encodeURIComponent(q)}`;
@@ -65,12 +58,12 @@ async function searchBible(q, trad) {
         }
       }
       info.innerHTML = "A busca pública pode estar limitada agora. Tentando alternativa…";
-    } catch (e) {
+    } catch {
       info.innerHTML = "A busca pública pode estar limitada agora. Tentando alternativa…";
     }
   }
 
-  // 2) Fallback KJV (somente se for referência, para evitar ruído)
+  // 2) Fallback KJV (somente referência)
   if (refLike) {
     try {
       const r2 = await fetch(`https://bible-api.com/${encodeURIComponent(q)}?translation=kjv`);
@@ -95,27 +88,49 @@ async function searchBible(q, trad) {
   }
 }
 
-/* ====== YouTube (sem API key) ====== */
+/* ====== YouTube (sem API key) ======
+   - Live: usa @handle ou UC... diretamente
+   - Shorts: se PL... informado → usa playlist; senão usa busca "<canal> shorts"
+   - Completos: se PL... informado → usa playlist; senão usa uploads (UU...) se informado; senão uploads do user/handle
+*/
 function applyYouTubeEmbeds(cfg){
-  const channel = cfg.ytChannel?.trim() || "@youtube";
-  const uploads = cfg.ytUploads?.trim() || "";
+  const channel = (cfg.ytChannel?.trim() || "@youtube");     // @handle ou UC...
+  const uploads = cfg.ytUploads?.trim() || "";                // UU...
+  const plShorts = cfg.ytShortsPL?.trim() || "";              // PL...
+  const plFull   = cfg.ytFullPL?.trim() || "";                // PL...
+  const nameForSearch = channel.replace(/^@/, "");
+
+  // live
   $("#liveFrame").src = `https://www.youtube.com/embed/live_stream?channel=${encodeURIComponent(channel)}&rel=0`;
-  $("#playlistFrame").src = uploads
-    ? `https://www.youtube.com/embed/videoseries?list=${encodeURIComponent(uploads)}`
-    : `https://www.youtube.com/embed?listType=user_uploads&list=${encodeURIComponent(channel.replace(/^@/,""))}`;
+
+  // shorts
+  $("#shortsFrame").src = plShorts
+    ? `https://www.youtube.com/embed/videoseries?list=${encodeURIComponent(plShorts)}`
+    : `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(nameForSearch + " shorts")}`;
+
+  // completos
+  $("#fullFrame").src = plFull
+    ? `https://www.youtube.com/embed/videoseries?list=${encodeURIComponent(plFull)}`
+    : (uploads
+        ? `https://www.youtube.com/embed/videoseries?list=${encodeURIComponent(uploads)}`
+        : `https://www.youtube.com/embed?listType=user_uploads&list=${encodeURIComponent(nameForSearch)}`);
 }
 
-/* ====== Config (apenas YouTube) ====== */
+/* ====== Config ====== */
 function openConfig(){
   const cfg = store.get();
-  $("#ytChannel").value   = cfg.ytChannel   || "";
-  $("#ytUploads").value   = cfg.ytUploads   || "";
+  $("#ytChannel").value = cfg.ytChannel || "";
+  $("#ytUploads").value = cfg.ytUploads || "";
+  $("#ytShortsPL").value = cfg.ytShortsPL || "";
+  $("#ytFullPL").value = cfg.ytFullPL || "";
   $("#configModal").showModal();
 }
 function saveConfig(){
   const cfg = store.get();
-  cfg.ytChannel = $("#ytChannel").value.trim();
-  cfg.ytUploads = $("#ytUploads").value.trim();
+  cfg.ytChannel  = $("#ytChannel").value.trim();
+  cfg.ytUploads  = $("#ytUploads").value.trim();
+  cfg.ytShortsPL = $("#ytShortsPL").value.trim();
+  cfg.ytFullPL   = $("#ytFullPL").value.trim();
   store.set(cfg);
   applyYouTubeEmbeds(cfg);
 }
