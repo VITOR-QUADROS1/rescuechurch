@@ -1,9 +1,18 @@
 {
-  "proxyBase": "https://SEU-WORKER-NOME.seuusuario.workers.dev",
-  "versions": {
-    "NVI (pt-BR)": "POR-NVI",
-    "ARA (pt-BR)": "POR-ARA",
-    "NTLH (pt-BR)": "POR-NTLH"
+  "proxy": {
+    "workerBase": "https://rescue-proxy.vitorpaulojquadros.workers.dev"
   },
-  "defaultVersion": "NTLH (pt-BR)"
+  "biblia": {
+    "defaultVersion": "POR-NTLH",
+    "versions": {
+      "NTLH (pt-BR)": "POR-NTLH",
+      "ARA (pt-BR)": "POR-ARA",
+      "NVI (pt-BR)": "POR-NVI"
+    }
+  },
+  "youtube": {
+    "channelId": "UCxxxxxxxxxxxxxxxxxxxxxx",
+    "shortsPlaylist": "",
+    "fullPlaylist": ""
+  }
 }
