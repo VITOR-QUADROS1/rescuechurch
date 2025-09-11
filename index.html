@@ -3,84 +3,50 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Igreja de Resgate — Rescue Church</title>
-  <meta name="theme-color" content="#0b1324">
-  <link rel="icon" href="assets/logo.png">
-  <link rel="preload" as="image" href="assets/logo.png">
-  <link rel="stylesheet" href="assets/style.css">
+  <title>Igreja de Resgate</title>
+  <link rel="stylesheet" href="./assets/style.css" />
 </head>
 <body>
   <header class="topbar">
     <div class="brand">
-      <img src="assets/logo.png" class="brand-logo" alt="Rescue Church">
+      <img src="./assets/logo.png" class="brand-icon" alt="logo" />
       <span>Igreja de Resgate</span>
     </div>
-    <nav class="menu">
+    <nav class="nav">
       <a href="#inicio">Início</a>
-      <a href="#vdia">Versículo do Dia</a>
+      <a href="#vod">Versículo do Dia</a>
       <a href="#buscar">Buscar na Bíblia</a>
-      <a href="#videos">Vídeos & Lives</a>
     </nav>
   </header>
 
-  <main class="container">
-    <!-- HERO -->
-    <section id="inicio" class="hero card">
-      <img src="assets/logo.png" alt="Rescue Church" class="hero-img cover">
-    </section>
-
-    <!-- VERSÍCULO DO DIA -->
-    <section id="vdia" class="card section">
-      <div class="section-head">
-        <h2>Versículo do dia</h2>
-        <button id="btnCopy" class="btn pill">Copiar 📋</button>
+  <main>
+    <section class="hero" id="inicio">
+      <div class="hero-card">
+        <img src="./assets/logo.png" alt="Rescue" class="hero-image" />
       </div>
-      <p id="vday" class="verse">Carregando...</p>
-      <p id="vdayRef" class="muted"></p>
     </section>
 
-    <!-- BUSCA -->
-    <section id="buscar" class="card section">
+    <section class="card" id="vod">
+      <div class="card-title">
+        <h2>Versículo do dia</h2>
+        <button id="btn-copy" class="btn">Copiar 📋</button>
+      </div>
+      <p id="vod-text" class="vod-text">—</p>
+      <small id="vod-meta" class="muted"></small>
+    </section>
+
+    <section class="card" id="buscar">
       <h2>Buscar na Bíblia</h2>
       <div class="search-row">
-        <input id="q" class="input" placeholder="Ex.: João 3:16 ou 'amor fé esperança'">
-        <select id="ver" class="select"></select>
-        <button id="btnSearch" class="btn">Procurar</button>
+        <input id="q" class="input" placeholder="Ex.: João 3:16 ou 'amor fé esperança'" />
+        <select id="ver-sel" class="select"></select>
+        <button id="btn-search" class="btn">Procurar</button>
       </div>
-      <p class="hint">Dica: referências aceitam variações (“Joao 3:16”, “Salmos 23”).</p>
-      <div id="result" class="result"></div>
+      <small class="muted">Dica: referências aceitam variações (“Joao 3:16”, “Salmos 23”).</small>
+      <div id="search-result" class="result-box"></div>
     </section>
-
-    <!-- VÍDEOS & LIVES -->
-    <section id="videos" class="card section">
-      <h2>Vídeos & Lives</h2>
-
-      <div class="video-grid">
-        <div class="live-col">
-          <h3>Ao vivo</h3>
-          <div class="player">
-            <iframe id="liveFrame" width="100%" height="100%" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-          </div>
-          <p class="muted">Se estiver ao vivo, aparece aqui. Caso contrário, mostra o último vídeo.</p>
-        </div>
-
-        <div class="shorts-col">
-          <h3>Curtos</h3>
-          <div id="shorts" class="hscroll"></div>
-        </div>
-
-        <div class="full-col">
-          <h3>Mensagens completas</h3>
-          <div id="fulls" class="hscroll"></div>
-        </div>
-      </div>
-    </section>
-
-    <footer class="footer">
-      <small>© <span id="yy"></span> Igreja de Resgate — feito com amor.</small>
-    </footer>
   </main>
 
-  <script type="module" src="assets/app.js"></script>
+  <script src="./assets/app.js"></script>
 </body>
 </html>
