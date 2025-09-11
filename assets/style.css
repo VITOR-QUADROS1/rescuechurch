@@ -6,7 +6,7 @@
   --muted:#96a2c5;
   --primary:#6ea8ff;
   --primary2:#8ab3ff;
-  --ring: #203a70;
+  --ring:#203a70;
 }
 
 *{box-sizing:border-box}
@@ -21,6 +21,7 @@ body{
     var(--bg);
 }
 
+/* topo */
 .topbar{
   position:sticky; top:0; z-index:10;
   display:flex; align-items:center; justify-content:space-between;
@@ -32,26 +33,34 @@ body{
 .menu a{color:var(--muted); margin-left:16px; text-decoration:none}
 .menu a:hover{color:var(--text)}
 
-main{max-width:1100px; margin:24px auto; padding:0 16px}
+.container{max-width:1100px; margin:24px auto; padding:0 16px}
 
+/* HERO largura total (full-bleed) */
+.hero-bleed{
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  padding:0 16px;   /* respiro lateral em telas muito grandes */
+}
+.hero-img{
+  width:100%;
+  height: clamp(180px, 34vw, 300px);    /* controla a altura */
+  object-fit: cover; object-position: center;
+  display:block;
+  border-radius:16px;
+  border:1px solid #18243f;
+  box-shadow:0 10px 30px rgba(0,0,0,.25), 0 0 0 1px var(--ring) inset;
+}
+
+/* cartões */
 .card{
   background:linear-gradient(180deg, var(--card), #0f1728);
   border:1px solid #18243f; border-radius:16px; padding:18px;
   box-shadow: 0 10px 30px rgba(0,0,0,.25), 0 0 0 1px var(--ring) inset;
 }
-
-/* HERO */
-.hero{padding:0; overflow:hidden}
-.hero-img{
-  width:100%;
-  height: clamp(170px, 24vw, 280px); /* controla a altura */
-  object-fit: cover; object-position: center;
-  display:block; border-radius:16px;
-}
-
 .card-head{display:flex; align-items:center; justify-content:space-between}
 h2{margin:0 0 10px 0}
 
+/* ui */
 .btn{
   border:0; padding:10px 14px; border-radius:10px;
   color:#111; background:linear-gradient(180deg, #cbd8ff, #a9c2ff);
@@ -61,21 +70,18 @@ h2{margin:0 0 10px 0}
 .btn-primary{
   color:#0b1020; background:linear-gradient(180deg, var(--primary2), var(--primary));
 }
-
 .input, .select{
   width:100%; padding:12px 12px; border-radius:10px; border:1px solid #1b2945;
   color:var(--text); background:#0f1728;
 }
 .search-row{display:grid; grid-template-columns: 1fr 180px 140px; gap:12px}
-
 .verse, .result{
   margin-top:8px; padding:12px; border:1px dashed #203259; border-radius:10px;
   background:#0d1527; min-height:48px; white-space:pre-wrap
 }
 .hint{color:var(--muted); font-size:13px; margin-top:8px}
 
-/* responsivo */
 @media (max-width: 780px){
   .search-row{grid-template-columns:1fr}
-  .hero-img{height:clamp(160px, 36vw, 220px)}
+  .hero-img{height:clamp(160px, 40vw, 240px)}
 }
