@@ -11,8 +11,8 @@
     "defaultVersion": "NVI (pt-BR)"
   },
   "proxy": {
-    "useWorker": false,
-    "workerBase": "https://SEU-WORKER.workers.dev/biblia"
+    "proxy": { "useWorker": true, "workerBase": "https://SEU-WORKER.workers.dev/biblia" }
+    "workerBase": "https://rescue-proxy.vitorpaulojquadros.workers.dev/biblia"
   },
   "youtube": {
     "channelId": "UCXXXXXXXXXXXXXXXX", 
