@@ -1,8 +1,7 @@
 {
-  "provider": "biblia", 
+  "provider": "biblia",
   "biblia": {
     "apiBase": "https://api.biblia.com/v1",
-    "apiKey": "ff9d81d119333447991ddfb752bb9ee65",
     "versions": {
       "NVI (pt-BR)": "POR-NVI",
       "ARA (pt-BR)": "POR-ARA",
@@ -11,11 +10,11 @@
     "defaultVersion": "NVI (pt-BR)"
   },
   "proxy": {
-    "proxy": { "useWorker": true, "workerBase": "https://SEU-WORKER.workers.dev/biblia" }
-    "workerBase": "https://rescue-proxy.vitorpaulojquadros.workers.dev/biblia"
+    "useWorker": true,
+    "workerBase": "https://rescue-proxy.vitorpauloquadros.workers.dev"   // <-- sem / no fim
   },
   "youtube": {
-    "channelId": "UCXXXXXXXXXXXXXXXX", 
+    "channelId": "UCCCCXXXXXXXXXXXXXXX",
     "shortsPlaylist": "PL_SHORTS_ID_AQUI",
     "fullPlaylist": "PL_MENSAGENS_ID_AQUI"
   }
