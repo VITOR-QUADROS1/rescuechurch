@@ -1,192 +1,131 @@
-(async function () {
-  const $ = (sel, ctx=document) => ctx.querySelector(sel);
-  const $$ = (sel, ctx=document) => [...ctx.querySelectorAll(sel)];
-  const byId = id => document.getElementById(id);
+const $ = (q, root=document) => root.querySelector(q);
+const $$ = (q, root=document) => [...root.querySelectorAll(q)];
 
-  const year = new Date().getFullYear();
-  byId('y').textContent = year;
+const cfg = await fetch("assets/config.json", { cache:"no-store" }).then(r=>r.json());
+const API = cfg.proxy.workerBase.replace(/\/+$/,"");
 
-  // Carrega config
-  let cfg;
+$("#yy").textContent = new Date().getFullYear();
+
+/* -------- HERO: nada a fazer, <img> já usa object-fit:contain -------- */
+
+/* -------- Versões bíblicas -------- */
+const verSel = $("#ver");
+Object.entries(cfg.biblia.versions).forEach(([label,val])=>{
+  const opt = document.createElement("option");
+  opt.value = val; opt.textContent = label;
+  if (val === cfg.biblia.defaultVersion) opt.selected = true;
+  verSel.appendChild(opt);
+});
+
+/* -------- Versículo do dia -------- */
+async function loadVerseOfDay() {
+  const ver = verSel.value || cfg.biblia.defaultVersion;
   try {
-    const r = await fetch('assets/config.json?v=2', {cache:'no-store'});
-    cfg = await r.json();
+    const r = await fetch(`${API}/api/verse-of-day?ver=${encodeURIComponent(ver)}`);
+    if (!r.ok) throw new Error(await r.text());
+    const data = await r.json();
+    $("#vday").textContent = data.text || "—";
+    $("#vdayRef").textContent = data.ref ? `(${data.ref} — ${data.version})` : "";
   } catch (e) {
-    console.error('Falha ao ler config.json', e);
-    return;
+    $("#vday").textContent = "Não foi possível carregar agora.";
+    $("#vdayRef").textContent = "Tente novamente mais tarde.";
   }
+}
+$("#btnCopy").onclick = () => {
+  const txt = `${$("#vday").textContent} ${$("#vdayRef").textContent}`;
+  navigator.clipboard.writeText(txt);
+};
+await loadVerseOfDay();
 
-  const workerBase = cfg.proxy?.useWorker ? cfg.proxy.workerBase.replace(/\/+$/,'') : '';
-  const API = {
-    verseOfDay: (verCode) => `${workerBase}/api/verse-of-day?ver=${encodeURIComponent(verCode||'POR-NVI')}`,
-    bibleContent: (verCode, ref) => `${workerBase}/biblia/bible/content/${encodeURIComponent(verCode)}.txt?passage=${encodeURIComponent(ref)}`,
-    bibleSearch: (verCode, q) => `${workerBase}/biblia/bible/search/${encodeURIComponent(verCode)}.js?query=${encodeURIComponent(q)}`,
-    ytUploads: (channelId) => `${workerBase}/api/youtube/uploads?channel=${encodeURIComponent(channelId)}`,
-    ytPlaylist: (playlistId) => `${workerBase}/api/youtube/playlist?id=${encodeURIComponent(playlistId)}`,
-    ytLive: (channelId) => `${workerBase}/api/youtube/live?channel=${encodeURIComponent(channelId)}`
-  };
-
-  /* ---------- HERO ---------- */
-  // usa logo.png por padrão
-  $('.hero__bg').style.setProperty('--hero-url', "url('assets/logo.png')");
-
-  /* ---------- SELECT de versões ---------- */
-  const selVer = byId('ver');
-  const vers = cfg.bible.versions;
-  for (const [label, code] of Object.entries(vers)){
-    const opt = document.createElement('option');
-    opt.textContent = label; opt.value = code;
-    if (label === cfg.bible.defaultVersion) opt.selected = true;
-    selVer.appendChild(opt);
+/* -------- Busca bíblica -------- */
+async function runSearch() {
+  const q = $("#q").value.trim();
+  const ver = $("#ver").value || cfg.biblia.defaultVersion;
+  if (!q) { $("#result").textContent = ""; return; }
+  $("#result").textContent = "Procurando...";
+  try {
+    // usa /biblia/bible/content/<ver>.txt?passage=...
+    const u = `${API}/biblia/bible/content/${encodeURIComponent(ver)}.txt?passage=${encodeURIComponent(q)}&style=oneVerse`;
+    const r = await fetch(u, { headers:{ "Accept":"text/plain" }});
+    const text = (await r.text()).trim();
+    if (!text) throw new Error("sem texto");
+    $("#result").textContent = text;
+  } catch (e) {
+    $("#result").textContent = "Erro na consulta. Tente outra palavra ou referência (ex.: João 3:16).";
   }
+}
+$("#btnSearch").onclick = runSearch;
+$("#q").addEventListener("keydown", e => (e.key==="Enter") && runSearch());
 
-  /* ---------- Versículo do dia ---------- */
-  const votdEl = byId('votd');
-  const btnCopy = byId('btnCopy');
-  let votdText = '';
-
-  async function loadVOTD() {
-    try {
-      const ver = selVer.value || vers[cfg.bible.defaultVersion];
-      const r = await fetch(API.verseOfDay(ver), {cache:'no-store'});
-      if (!r.ok) throw new Error('votd http '+r.status);
-      const data = await r.json(); // {ref, version, text}
-      votdText = `${data.text}\n— ${data.ref} (${data.version})`;
-      votdEl.textContent = votdText;
-      votdEl.classList.remove('loading');
-    } catch (e) {
-      console.error(e);
-      votdEl.innerHTML = `<div class="muted">Não foi possível carregar agora.<br/>Tente novamente mais tarde.</div>`;
-    }
-  }
-  loadVOTD();
-
-  votdEl.addEventListener('click', () => copy(votdText));
-  btnCopy.addEventListener('click', () => copy(votdText));
-  function copy(t){
-    if (!t) return;
-    navigator.clipboard.writeText(t).then(()=> {
-      btnCopy.textContent = 'Copiado ✅';
-      setTimeout(()=> btnCopy.textContent = 'Copiar 📋', 1500);
-    });
-  }
-
-  /* ---------- Busca na Bíblia ---------- */
-  const form = byId('formBusca');
-  const q = byId('q');
-  const resBox = byId('resultado');
-
-  form.addEventListener('submit', async (ev)=>{
-    ev.preventDefault();
-    resBox.innerHTML = '<div class="loading">Procurando...</div>';
-
-    const refOrTerm = q.value.trim();
-    const ver = selVer.value;
-    if (!refOrTerm){ resBox.textContent = ''; return; }
-
-    // se parece referência (salmos 23:1, joao 3:16), manda pro content; senão, search
-    const isRef = /[\d:]/.test(refOrTerm) || /\b(gên|gen|êx|exo|salmos?|jo(á|a)o|mt|mc|lc|jo|atos|rom)/i.test(refOrTerm);
-
-    try{
-      if (isRef){
-        const r = await fetch(API.bibleContent(ver, refOrTerm), {cache:'no-store'});
-        if (!r.ok){ throw new Error('content '+r.status); }
-        const txt = await r.text();
-        resBox.textContent = normalizeBibleText(txt);
-      }else{
-        const r = await fetch(API.bibleSearch(ver, refOrTerm), {cache:'no-store'});
-        if (!r.ok){ throw new Error('search '+r.status); }
-        const data = await r.json();
-        if (!data.results || !data.results.length){
-          resBox.innerHTML = `<div class="muted">Nenhum resultado agora. Tente outra referência.</div>`;
-          return;
-        }
-        // mostra os 3 primeiros
-        const out = data.results.slice(0,3).map(x=>{
-          const verseRef = `${x.title?.replace(/\s+/g,' ')} ${x.preview?.match(/\((.*?)\)/)?.[1]??''}`.trim();
-          return `• ${x.preview?.replace(/<[^>]+>/g,'').trim()}\n  — ${verseRef}`;
-        }).join('\n\n');
-        resBox.textContent = out;
-      }
-    }catch(e){
-      console.error(e);
-      resBox.innerHTML = `<div class="muted">Erro na consulta. Tente outra palavra ou referência (ex.: João 3:16).</div>`;
-    }
+/* -------- Vídeos -------- */
+function card(item){
+  const el = document.createElement("a");
+  el.className="hitem";
+  el.href = `https://www.youtube.com/watch?v=${item.id}`;
+  el.target = "_blank";
+  el.rel = "noopener";
+  el.innerHTML = `
+    <img class="hthumb" src="${item.thumb}" alt="">
+    <div class="hmeta">
+      <div class="t">${item.title}</div>
+      <div class="s">${new Date(item.published).toLocaleDateString("pt-BR")}</div>
+    </div>`;
+  return el;
+}
+async function loadPlaylist(playlistId, containerSel){
+  if (!playlistId) return;
+  const r = await fetch(`${API}/api/youtube?playlist=${encodeURIComponent(playlistId)}`);
+  if (!r.ok) return;
+  const data = await r.json();
+  const box = $(containerSel);
+  box.innerHTML = "";
+  data.items.forEach(v => box.appendChild(card(v)));
+  // drag-to-scroll suave
+  dragScroll(box);
+}
+function dragScroll(el){
+  let isDown=false, startX, scrollLeft;
+  el.addEventListener("pointerdown", e=>{
+    isDown=true; startX=e.pageX; scrollLeft = el.scrollLeft;
+    el.setPointerCapture(e.pointerId);
+    el.style.cursor="grabbing";
   });
+  el.addEventListener("pointermove", e=>{
+    if(!isDown) return;
+    const dx = e.pageX - startX;
+    el.scrollLeft = scrollLeft - dx;
+  });
+  const stop=()=>{ isDown=false; el.style.cursor="default"; };
+  el.addEventListener("pointerup", stop);
+  el.addEventListener("pointercancel", stop);
+  el.addEventListener("pointerleave", stop);
+}
 
-  function normalizeBibleText(t){
-    // remove cabeçalhos do biblia.com quando vem .txt
-    return t.replace(/\r/g,'').replace(/\n{3,}/g,'\n\n').trim();
-  }
+/* Live: tenta live do canal; se não houver, usa 1º vídeo da playlist full */
+async function setupLive(){
+  const frame = $("#liveFrame");
+  frame.src = `https://www.youtube-nocookie.com/embed/live_stream?channel=${encodeURIComponent(cfg.youtube.channelId)}&autoplay=1&mute=1`;
 
-  /* ---------- YouTube ---------- */
-  const channelId = cfg.youtube.channelId;
-  const shortsPlaylist = cfg.youtube.shortsPlaylist;
-  const fullPlaylist = cfg.youtube.fullPlaylist;
-
-  const livePlayer = byId('livePlayer');
-  const railShorts = byId('shorts');
-  const railFull = byId('full');
-
-  // Live (tenta pegar live, senão último upload)
-  async function loadLive(){
-    try{
-      const r = await fetch(API.ytLive(channelId), {cache:'no-store'});
-      const data = await r.json(); // {live: true/false, id: "VIDEOID"} ou {id: ultimo}
-      const vid = data?.id;
-      if (!vid){ livePlayer.innerHTML = `<div class="muted">Não encontrado.</div>`; return; }
-      livePlayer.innerHTML = `<iframe src="https://www.youtube.com/embed/${vid}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>`;
-    }catch(e){
-      console.error(e);
-      livePlayer.innerHTML = `<div class="muted">Falha ao carregar o player.</div>`;
+  // checa live
+  try {
+    const r = await fetch(`${API}/api/youtube/live?channel=${encodeURIComponent(cfg.youtube.channelId)}`);
+    const j = await r.json();
+    if (j.isLive && j.id) {
+      frame.src = `https://www.youtube-nocookie.com/embed/${j.id}?autoplay=1&mute=1`;
+      return;
     }
-  }
+  } catch (_) {}
 
-  // Carrossel helper
-  function mountRail(el, items){
-    el.innerHTML = items.map(v=>{
-      const thumb = `https://i.ytimg.com/vi/${v.id}/hqdefault.jpg`;
-      const t = (v.title||'').replace(/&amp;/g,'&');
-      return `
-        <a class="cardThumb" href="https://www.youtube.com/watch?v=${v.id}" target="_blank" rel="noopener">
-          <img src="${thumb}" alt="">
-          <div class="meta">${escapeHtml(t)}</div>
-        </a>`;
-    }).join('');
-  }
-  function escapeHtml(s){ return s?.replace(/[<>&]/g, m=>({ '<':'&lt;','>':'&gt;','&':'&amp;'}[m]))??'' }
+  // fallback: pega 1º da playlist de mensagens completas (ou shorts, se preferir)
+  try {
+    const rr = await fetch(`${API}/api/youtube?playlist=${encodeURIComponent(cfg.youtube.fullPlaylist || cfg.youtube.shortsPlaylist)}`);
+    const data = await rr.json();
+    const id = data.items?.[0]?.id;
+    if (id) frame.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1`;
+  } catch (_){}
+}
 
-  async function loadRails(){
-    // Shorts
-    try{
-      let items;
-      if (shortsPlaylist){
-        const rs = await fetch(API.ytPlaylist(shortsPlaylist));
-        items = (await rs.json()).items || [];
-      }else{
-        const ru = await fetch(API.ytUploads(channelId));
-        const up = await ru.json();
-        // considera shorts se duração <= 61s (quando o feed traz duração)
-        items = (up.items||[]).filter(x => (x.duration||0) <= 61);
-      }
-      mountRail(railShorts, items.slice(0,12));
-    }catch(e){ console.warn('shorts',e); }
-
-    // Completos
-    try{
-      let items;
-      if (fullPlaylist){
-        const rp = await fetch(API.ytPlaylist(fullPlaylist));
-        items = (await rp.json()).items || [];
-      }else{
-        const ru = await fetch(API.ytUploads(channelId));
-        const up = await ru.json();
-        items = (up.items||[]).filter(x => (x.duration||999) > 61);
-      }
-      mountRail(railFull, items.slice(0,12));
-    }catch(e){ console.warn('full',e); }
-  }
-
-  loadLive();
-  loadRails();
-})();
+/* Carregar tudo */
+await setupLive();
+await loadPlaylist(cfg.youtube.shortsPlaylist, "#shorts");
+await loadPlaylist(cfg.youtube.fullPlaylist, "#fulls");
