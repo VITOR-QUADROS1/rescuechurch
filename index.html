@@ -2,22 +2,22 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Igreja de Resgate — Rescue Church</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Rescue Church — Igreja de Resgate</title>
+  <meta name="color-scheme" content="dark" />
+  <link rel="preload" href="assets/logo.png" as="image" />
   <link rel="stylesheet" href="assets/style.css" />
-  <link rel="icon" href="assets/logo.png" />
 </head>
+
 <body>
-  <header class="topbar">
-    <div class="container">
+  <header class="site-header">
+    <div class="container nav">
       <div class="brand">
-        <img src="assets/logo.png" alt="Rescue Church" />
-        <span>Igreja de Resgate</span>
+        <img src="assets/logo.png" alt="" class="brand__logo" />
+        <span class="brand__title">Igreja de Resgate</span>
       </div>
-      <nav class="nav">
+
+      <nav class="menu">
         <a href="#inicio">Início</a>
         <a href="#versiculo">Versículo do Dia</a>
         <a href="#biblia">Buscar na Bíblia</a>
@@ -27,68 +27,84 @@
   </header>
 
   <main id="inicio" class="container">
-    <!-- HERO: somente imagem central -->
-    <section class="hero card glass">
-      <img class="hero-logo" src="assets/logo.png" alt="Rescue Church" />
-      <!-- Se quiser voltar com textos, é só remover a classe sr-only abaixo -->
-      <div class="sr-only">
-        <h1>Igreja de Resgate</h1>
-        <p>Palavra que transforma, comunidade que abraça.</p>
-      </div>
+    <!-- HERO: somente imagem preenchendo todo o cartão -->
+    <section
+      id="hero"
+      class="card hero hero--full-img"
+      role="img"
+      aria-label="Rescue Church">
     </section>
 
-    <section id="versiculo" class="card glass">
-      <div class="card-head">
+    <!-- Versículo do dia -->
+    <section id="versiculo" class="card card--pad">
+      <div class="card__header">
         <h2>Versículo do dia</h2>
-        <button id="copyVerse" class="btn">Copiar 📋</button>
+        <button id="copyVerseBtn" class="btn btn--ghost">Copiar 📋</button>
       </div>
-      <p id="dailyVerse" class="verse">Carregando...</p>
-      <small id="dailyRef" class="ref"></small>
-      <div id="dailyHint" class="hint"></div>
+      <p id="verseText" class="muted">Carregando...</p>
+      <small id="verseRef" class="muted"></small>
     </section>
 
-    <section id="biblia" class="card glass">
+    <!-- Buscar na Bíblia -->
+    <section id="biblia" class="card card--pad">
       <h2>Buscar na Bíblia</h2>
+
       <form id="searchForm" class="search">
-        <input id="searchInput" type="text" placeholder="Ex.: João 3:16 ou 'amor fé esperança'" />
-        <select id="versionSelect"></select>
-        <button class="btn" type="submit">Procurar</button>
+        <input
+          id="q"
+          class="input"
+          type="text"
+          placeholder="Ex.: João 3:16 ou 'amor fé esperança'"
+          autocomplete="off" />
+
+        <select id="ver" class="select">
+          <option value="POR-NVI" selected>NVI (pt-BR)</option>
+          <option value="POR-ARA">ARA (pt-BR)</option>
+          <option value="POR-NTLH">NTLH (pt-BR)</option>
+        </select>
+
+        <button class="btn" id="doSearch">Procurar</button>
       </form>
-      <small class="hint">Dica: referências aceitam variações (“Joao 3:16”, “Salmos 23”).</small>
-      <div id="result" class="result"></div>
+
+      <div id="searchResult" class="result"></div>
+      <small class="hint">
+        Dica: referências aceitam variações (“Joao 3:16”, “Salmos 23”).
+      </small>
     </section>
 
-    <section id="videos" class="card glass">
+    <!-- Vídeos & Lives -->
+    <section id="videos" class="card card--pad">
       <h2>Vídeos & Lives</h2>
-      <div class="grid-2">
-        <div>
-          <h3>Ao vivo</h3>
-          <div class="ratio">
-            <iframe id="liveFrame" src="" title="Live" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>
-          </div>
-          <small>Se estiver ao vivo, aparece aqui. Caso contrário, mostra a última live.</small>
-        </div>
-        <div>
-          <h3>Curtos</h3>
-          <div class="ratio">
-            <iframe id="shortsFrame" src="" title="Shorts" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>
-          </div>
-        </div>
-      </div>
 
-      <div class="stack">
-        <h3>Mensagens completas</h3>
-        <div class="ratio wide">
-          <iframe id="fullFrame" src="" title="Mensagens" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>
+      <div class="videos-grid">
+        <div class="video-box">
+          <h3>Ao vivo</h3>
+          <div id="ytLive" class="video-embed"></div>
+          <small class="muted">
+            Se estiver ao vivo, aparece aqui. Caso contrário, mostra a última live.
+          </small>
+        </div>
+
+        <div class="video-box">
+          <h3>Curtos</h3>
+          <div id="ytShorts" class="video-embed"></div>
+        </div>
+
+        <div class="video-box video-box--full">
+          <h3>Mensagens completas</h3>
+          <div id="ytFull" class="video-embed"></div>
         </div>
       </div>
     </section>
-
-    <footer class="footer">
-      <p>© <span id="year"></span> Igreja de Resgate — feito com amor</p>
-    </footer>
   </main>
 
+  <footer class="site-footer">
+    <div class="container">
+      <small>© 2025 Igreja de Resgate — feito com amor</small>
+    </div>
+  </footer>
+
+  <!-- Seu JS existente continua igual -->
   <script src="assets/app.js" defer></script>
 </body>
 </html>
