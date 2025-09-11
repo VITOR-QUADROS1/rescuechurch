@@ -1,5 +1,4 @@
 {
-  "provider": "biblia",
   "biblia": {
     "apiBase": "https://api.biblia.com/v1",
     "versions": {
