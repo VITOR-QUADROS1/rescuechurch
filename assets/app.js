@@ -1,251 +1,139 @@
-/* =========================================================================
- * Rescue Church — app.js (client-only, GitHub Pages)
- * - Lê assets/config.json
- * - Usa o Cloudflare Worker como proxy (sem servidor próprio)
- * - Carrega "Versículo do dia" e consulta de passagens
- * - Mantém o layout: só preenche elementos já existentes
- * ========================================================================= */
+// app.js (ESM com top-level await)
 
-(() => {
-  // ---------- Ajuste rápido de seletores (se precisar) ----------
-  const SELECTORS = {
-    // Versículo do dia
-    vodText:    ['#vod-text', '#vodText', '#versiculoTexto', '.vod-text'],
-    vodMeta:    ['#vod-meta', '#vodMeta', '#versiculoMeta', '.vod-meta'],
-    vodCopyBtn: ['#vod-copy', '#btnCopyVod', '.btn-copy-vod'],
+const $ = (q, r=document) => r.querySelector(q);
 
-    // Busca na Bíblia
-    input:      ['#searchRef', '#search-input', '#buscaRef', '#input-ref', '.search-input'],
-    version:    ['#version', '#versionSelect', '#versao', '.version-select'],
-    searchBtn:  ['#searchBtn', '#btnSearch', '.btn-search'],
-    result:     ['#resultado-biblia', '#resultBible', '#resultado', '.resultado-biblia'],
+const cfg = await fetch("assets/config.json", { cache:"no-store" }).then(r=>r.json());
+const API = cfg.proxy.workerBase.replace(/\/+$/,"");
 
-    // Avisos/erros (opcional)
-    vodCard:    ['#vod-card', '.vod-card'],
-    resultBox:  ['#result-box', '.result-box']
-  };
+$("#yy").textContent = new Date().getFullYear();
 
-  // Encontra o primeiro seletor existente na página
-  function pick(selArr) {
-    for (const s of selArr) {
-      const el = document.querySelector(s);
-      if (el) return el;
-    }
-    return null;
+/* Versões da Bíblia */
+const verSel = $("#ver");
+Object.entries(cfg.biblia.versions).forEach(([label, val])=>{
+  const o = document.createElement("option");
+  o.value = val; o.textContent = label;
+  if (val === cfg.biblia.defaultVersion) o.selected = true;
+  verSel.appendChild(o);
+});
+
+/* Versículo do dia */
+async function loadVerseOfDay(){
+  const ver = verSel.value || cfg.biblia.defaultVersion;
+  try{
+    const r = await fetch(`${API}/api/verse-of-day?ver=${encodeURIComponent(ver)}`);
+    if(!r.ok) throw new Error(await r.text());
+    const j = await r.json();
+    $("#vday").textContent = j.text || "—";
+    $("#vdayRef").textContent = j.ref ? `(${j.ref} — ${j.version})` : "";
+  }catch(e){
+    console.warn("V-OF-DAY", e);
+    $("#vday").textContent = "Não foi possível carregar agora.";
+    $("#vdayRef").textContent = "Tente novamente mais tarde.";
   }
+}
+$("#btnCopy").onclick = () => {
+  const t = `${$("#vday").textContent} ${$("#vdayRef").textContent}`;
+  navigator.clipboard.writeText(t);
+};
+await loadVerseOfDay();
 
-  // ---------- Estado global ----------
-  const state = {
-    config: null,
-    proxyBase: '',
-    versions: {},            // { "NVI (pt-BR)": "POR-NVI", ... }
-    defaultVersionLabel: '', // "NTLH (pt-BR)"
-    currentVerCode: ''       // "POR-NTLH"
-  };
+/* Busca na Bíblia */
+async function runSearch(){
+  const q = $("#q").value.trim();
+  let ver = $("#ver").value || cfg.biblia.defaultVersion;
+  if(!q){ $("#result").textContent=""; return; }
+  $("#result").textContent = "Procurando...";
+  try{
+    let url = `${API}/biblia/bible/content/${encodeURIComponent(ver)}.txt?passage=${encodeURIComponent(q)}&style=oneVerse`;
+    let r = await fetch(url, { headers:{Accept:"text/plain"} });
+    let text = (await r.text()).trim();
 
-  // ---------- Utilitários ----------
-  const escapeHtml = (s) => String(s || '').replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
-  const br = (s) => escapeHtml(s).replace(/\r?\n/g, '<br>');
-
-  function setText(el, text) { if (el) el.textContent = text; }
-  function setHtml(el, html) { if (el) el.innerHTML = html; }
-
-  // Mostra erro "humano" no VOD
-  function showVodError() {
-    const textEl = pick(SELECTORS.vodText);
-    const metaEl = pick(SELECTORS.vodMeta);
-    if (textEl) setText(textEl, 'Não foi possível carregar agora. Tente novamente mais tarde.');
-    if (metaEl) setText(metaEl, '');
-  }
-
-  // Mostra erro "humano" na busca
-  function showSearchError() {
-    const resEl = pick(SELECTORS.result);
-    if (resEl) {
-      setText(resEl, 'Erro na consulta. Tente outra palavra ou referência (ex.: João 3:16).');
-    }
-  }
-
-  // Lê config.json (forma nova e antiga)
-  async function loadConfig() {
-    // Caminho padrão para GitHub Pages
-    const url = window.CONFIG_URL || 'assets/config.json';
-
-    const r = await fetch(url, { cache: 'no-cache' });
-    const cfg = await r.json();
-
-    // Suporta duas formas de config:
-    // 1) simples
-    // {
-    //   "proxyBase": "https://SEU-WORKER.workers.dev",
-    //   "versions": { "NVI (pt-BR)": "POR-NVI", ... },
-    //   "defaultVersion": "NTLH (pt-BR)"
-    // }
-    //
-    // 2) antiga (com biblia/proxy)
-    // {
-    //   "biblia": { "versions": {...}, "defaultVersion": "..." },
-    //   "proxy": { "workerBase": "https://..." }
-    // }
-
-    const proxyBase =
-      cfg.proxyBase ||
-      cfg?.proxy?.workerBase ||
-      cfg?.proxy?.proxyBase ||
-      '';
-
-    const versions =
-      cfg.versions ||
-      cfg?.biblia?.versions ||
-      {};
-
-    const defaultVersionLabel =
-      cfg.defaultVersion ||
-      cfg?.biblia?.defaultVersion ||
-      Object.keys(versions)[0] ||
-      '';
-
-    if (!proxyBase) {
-      throw new Error('proxyBase não definido em assets/config.json');
+    // Fallback de versão se vier vazio/erro
+    if(!r.ok || !text){
+      ver = "POR-NTLH";
+      url = `${API}/biblia/bible/content/${ver}.txt?passage=${encodeURIComponent(q)}&style=oneVerse`;
+      r = await fetch(url, { headers:{Accept:"text/plain"} });
+      text = (await r.text()).trim();
     }
 
-    state.config = cfg;
-    state.proxyBase = proxyBase.replace(/\/+$/, ''); // sem barra no fim
-    state.versions = versions;
-    state.defaultVersionLabel = defaultVersionLabel;
-    state.currentVerCode = versions[defaultVersionLabel] || Object.values(versions)[0];
-
-    return cfg;
+    if(!text) throw new Error("sem texto");
+    $("#result").textContent = text;
+  }catch(e){
+    console.warn("SEARCH", e);
+    $("#result").textContent = "Erro na consulta. Tente outra palavra ou referência (ex.: João 3:16).";
   }
+}
+$("#btnSearch").onclick = runSearch;
+$("#q").addEventListener("keydown", e=>e.key==="Enter" && runSearch());
 
-  // Preenche o <select> de versões mantendo label do layout
-  function populateVersions() {
-    const sel = pick(SELECTORS.version);
-    if (!sel) return;
+/* ======= VÍDEOS ======= */
 
-    // Limpa
-    sel.innerHTML = '';
+function card(v){
+  const a=document.createElement("a");
+  a.className="hitem"; a.href=`https://www.youtube.com/watch?v=${v.id}`; a.target="_blank"; a.rel="noopener";
+  a.innerHTML = `
+    <img class="hthumb" src="${v.thumb}" alt="">
+    <div class="hmeta">
+      <div class="t">${v.title}</div>
+      <div class="s">${new Date(v.published).toLocaleDateString("pt-BR")}</div>
+    </div>
+  `;
+  return a;
+}
+function dragScroll(el){
+  let down=false,start,orig;
+  el.addEventListener("pointerdown",e=>{down=true;start=e.pageX;orig=el.scrollLeft;el.setPointerCapture(e.pointerId);el.style.cursor="grabbing";});
+  el.addEventListener("pointermove",e=>{if(!down)return;el.scrollLeft = orig-(e.pageX-start);});
+  const up=()=>{down=false;el.style.cursor="grab";};
+  el.addEventListener("pointerup",up);el.addEventListener("pointerleave",up);el.addEventListener("pointercancel",up);
+  el.style.cursor="grab";
+}
 
-    // Cria opções conforme config
-    Object.entries(state.versions).forEach(([label, code]) => {
-      const opt = document.createElement('option');
-      opt.value = code;
-      opt.textContent = label;
-      if (label === state.defaultVersionLabel) opt.selected = true;
-      sel.appendChild(opt);
-    });
+async function loadList(by, val, targetSel){
+  try{
+    const url = by==="playlist"
+      ? `${API}/api/youtube?playlist=${encodeURIComponent(val)}`
+      : `${API}/api/youtube?channel=${encodeURIComponent(val)}`;
+    const r = await fetch(url);
+    if(!r.ok) return;
+    const j = await r.json();
+    const box = $(targetSel); box.innerHTML="";
+    j.items.forEach(x=>box.appendChild(card(x)));
+    dragScroll(box);
+  }catch(e){ console.warn("loadList", e); }
+}
 
-    // Ouça alterações
-    sel.addEventListener('change', () => {
-      state.currentVerCode = sel.value;
-      // Se quiser, recarrega o VOD quando mudar versão:
-      carregarVersiculoDoDia();
-    });
-  }
+async function setupLive(){
+  const ch = cfg.youtube.channelId;
+  const frame = $("#liveFrame");
 
-  // ---------- VOD ----------
-  async function carregarVersiculoDoDia() {
-    try {
-      const ver = state.currentVerCode || 'POR-NTLH';
-      const url = `${state.proxyBase}/api/verse-of-day?ver=${encodeURIComponent(ver)}`;
-
-      const r = await fetch(url);
-      const data = await r.json();
-
-      const textEl = pick(SELECTORS.vodText);
-      const metaEl = pick(SELECTORS.vodMeta);
-
-      if (data?.ok && (data.text || '').trim()) {
-        if (textEl) setHtml(textEl, br(data.text));
-        if (metaEl) setText(metaEl, `(${data.ref} — ${data.version})`);
-      } else {
-        showVodError();
-      }
-    } catch (e) {
-      showVodError();
+  // tenta /live; se não, usa último vídeo
+  try{
+    const r = await fetch(`${API}/api/youtube/live?channel=${encodeURIComponent(ch)}`);
+    const j = await r.json();
+    if(j.isLive && j.id){
+      frame.src = `https://www.youtube-nocookie.com/embed/${j.id}?autoplay=1&mute=1`;
+      return;
     }
+  }catch(e){ /* continua */ }
+
+  // Fallback: últimos uploads do canal
+  try{
+    const up = await fetch(`${API}/api/youtube?channel=${encodeURIComponent(ch)}`);
+    const j = await up.json();
+    const id = j.items?.[0]?.id;
+    if(id) frame.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1`;
+    else frame.src = `https://www.youtube-nocookie.com/embed/live_stream?channel=${encodeURIComponent(ch)}&autoplay=1&mute=1`;
+  }catch(e){
+    frame.src = `https://www.youtube-nocookie.com/embed/live_stream?channel=${encodeURIComponent(ch)}&autoplay=1&mute=1`;
   }
+}
+await setupLive();
 
-  function configurarBotaoCopiarVOD() {
-    const btn = pick(SELECTORS.vodCopyBtn);
-    const textEl = pick(SELECTORS.vodText);
-    const metaEl = pick(SELECTORS.vodMeta);
-    if (!btn || !textEl) return;
+// Carrosseis — usa playlists se você tiver, senão cai para uploads do canal
+const CH = cfg.youtube.channelId;
+if (cfg.youtube.shortsPlaylist) await loadList("playlist", cfg.youtube.shortsPlaylist, "#shorts");
+else await loadList("channel", CH, "#shorts");
 
-    btn.addEventListener('click', async () => {
-      try {
-        const plain = `${(textEl.textContent || '').trim()} ${metaEl ? metaEl.textContent : ''}`.trim();
-        await navigator.clipboard.writeText(plain);
-        btn.classList.add('copied');
-        setTimeout(() => btn.classList.remove('copied'), 800);
-      } catch (_) {}
-    });
-  }
-
-  // ---------- Busca ----------
-  async function buscarPassagem() {
-    const input = pick(SELECTORS.input);
-    const resEl = pick(SELECTORS.result);
-    if (!input || !resEl) return;
-
-    const passage = (input.value || '').trim();
-    const ver = (pick(SELECTORS.version)?.value) || state.currentVerCode || 'POR-NTLH';
-
-    if (!passage) return;
-
-    // Troca ponto por dois-pontos se o usuário digitar "23.1"
-    const normalized = passage.replace(/(\d+)\.(\d+)/g, '$1:$2');
-
-    try {
-      const url = `${state.proxyBase}/biblia/content?ver=${encodeURIComponent(ver)}&passage=${encodeURIComponent(normalized)}`;
-
-      const r = await fetch(url);
-      const data = await r.json();
-
-      if (data?.ok && (data.text || '').trim()) {
-        setHtml(
-          resEl,
-          `
-          <div class="ref">${escapeHtml(data.ref)} — ${escapeHtml(data.ver || ver)}</div>
-          <div class="texto">${br(data.text)}</div>
-          `
-        );
-      } else {
-        showSearchError();
-      }
-    } catch (e) {
-      showSearchError();
-    }
-  }
-
-  function wireSearch() {
-    const btn = pick(SELECTORS.searchBtn);
-    const input = pick(SELECTORS.input);
-    if (btn) btn.addEventListener('click', buscarPassagem);
-    if (input) {
-      input.addEventListener('keydown', (ev) => {
-        if (ev.key === 'Enter') buscarPassagem();
-      });
-    }
-  }
-
-  // ---------- Init ----------
-  async function init() {
-    try {
-      await loadConfig();       // lê config.json
-      populateVersions();       // popula select
-      configurarBotaoCopiarVOD();
-      wireSearch();
-
-      // Carrega VOD no carregamento
-      carregarVersiculoDoDia();
-    } catch (err) {
-      // Falha de config: mostra feedback amigável
-      console.error(err);
-      showVodError();
-      showSearchError();
-    }
-  }
-
-  document.addEventListener('DOMContentLoaded', init);
-})();
+if (cfg.youtube.fullPlaylist) await loadList("playlist", cfg.youtube.fullPlaylist, "#fulls");
+else await loadList("channel", CH, "#fulls");
