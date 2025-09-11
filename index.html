@@ -3,36 +3,36 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Rescue Church</title>
+  <title>Igreja de Resgate</title>
+  <meta name="description" content="Igreja de Resgate — Palavra que transforma, comunidade que abraça." />
   <link rel="stylesheet" href="assets/style.css" />
-  <link rel="preconnect" href="https://i.ytimg.com">
-  <link rel="preconnect" href="https://www.youtube.com">
-  <meta name="description" content="Site oficial da Rescue Church – Palavra que transforma, comunidade que abraça."/>
+  <link rel="preconnect" href="https://www.youtube.com" />
+  <link rel="preconnect" href="https://i.ytimg.com" />
 </head>
 <body>
   <header class="topbar">
     <div class="brand">
-      <img src="assets/logo.svg" alt="Rescue Church" class="logo" />
-      <h1>Rescue Church</h1>
+      <img src="assets/logo.svg" alt="Igreja de Resgate" class="logo" />
+      <h1>Igreja de Resgate</h1>
     </div>
     <nav class="nav">
       <a href="#inicio">Início</a>
       <a href="#versiculo">Versículo do Dia</a>
       <a href="#biblia">Buscar na Bíblia</a>
       <a href="#midia">Vídeos & Lives</a>
-      <button id="btnConfig" class="btn ghost" title="Configurações">⚙️</button>
     </nav>
   </header>
 
   <main id="inicio" class="container">
-    <!-- HERO centralizado (como você pediu) -->
+    <!-- HERO centralizado -->
     <section id="hero" class="card hero">
       <div>
-        <h2>Rescue Church </h2>
+        <h2>Igreja de Resgate</h2>
         <p>Palavra que transforma, comunidade que abraça.</p>
       </div>
     </section>
 
+    <!-- Versículo do dia -->
     <section id="versiculo" class="card">
       <h3>Versículo do dia</h3>
       <p id="vday-text" class="vtext">Carregando…</p>
@@ -40,6 +40,7 @@
       <div class="hint">Dica: clique no texto para copiar 📋</div>
     </section>
 
+    <!-- Buscar na Bíblia -->
     <section id="biblia" class="card">
       <h3>Buscar na Bíblia</h3>
       <form id="searchForm" class="row">
@@ -55,6 +56,7 @@
       <div id="results" class="results"></div>
     </section>
 
+    <!-- Vídeos & Lives -->
     <section id="midia" class="card">
       <h3>Vídeos & Lives</h3>
 
@@ -96,44 +98,8 @@
   </main>
 
   <footer class="footer">
-    <small>© <span id="yy"></span> Rescue Church. Todos os direitos reservados.</small>
+    <small>© <span id="yy"></span> Igreja de Resgate. Todos os direitos reservados.</small>
   </footer>
-
-  <!-- Modal de Configurações -->
-  <dialog id="configModal" class="modal">
-    <form method="dialog" class="card">
-      <h3>Configurações</h3>
-
-      <div class="row">
-        <label class="lbl">YouTube – Identificador do canal (handle <b>@seucanal</b> ou <b>ID UC…</b>)
-          <input id="ytChannel" class="input" placeholder="@RescueChuchoficial ou UCxxxxxxxxxxxxxxxxxxxx"/>
-        </label>
-        <label class="lbl">YouTube – ID da playlist de uploads (começa com <b>UU</b>) – opcional
-          <input id="ytUploads" class="input" placeholder="UUxxxxxxxxxxxxxxxx"/>
-        </label>
-      </div>
-
-      <div class="row">
-        <label class="lbl">YouTube – Playlist de <b>Shorts</b> (PL…) – opcional
-          <input id="ytShortsPL" class="input" placeholder="PLxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"/>
-        </label>
-        <label class="lbl">YouTube – Playlist de <b>Mensagens completas</b> (PL…) – opcional
-          <input id="ytFullPL" class="input" placeholder="PLxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"/>
-        </label>
-      </div>
-
-      <div class="row">
-        <label class="lbl">A Bíblia Digital – <b>Token</b> (opcional, remove limite de 20 req/h)
-          <input id="abdToken" class="input" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."/>
-        </label>
-      </div>
-
-      <menu class="actions">
-        <button value="cancel" class="btn ghost">Cancelar</button>
-        <button id="saveCfg" class="btn primary" value="default">Salvar</button>
-      </menu>
-    </form>
-  </dialog>
 
   <script src="assets/app.js"></script>
 </body>
