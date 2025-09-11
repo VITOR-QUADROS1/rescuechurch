@@ -1,142 +1,90 @@
-(async () => {
-  const cfg = await (await fetch("./assets/config.json")).json();
-  const proxyBase = cfg.proxy.useWorker ? cfg.proxy.workerBase : cfg.biblia.apiBase;
-  const defaultVer = cfg.biblia.defaultVersion || "POR-NTLH";
+// app.js (ESM com top-level await)
 
-  // --- util: mapear livros PT -> EN aceitos pelo Biblia.com
-  const bookMap = new Map(Object.entries({
-    "gênesis":"Genesis","genesis":"Genesis","gn":"Genesis",
-    "êxodo":"Exodus","exodo":"Exodus","ex":"Exodus",
-    "levítico":"Leviticus","levitico":"Leviticus","lv":"Leviticus",
-    "números":"Numbers","numeros":"Numbers","nm":"Numbers",
-    "deuteronômio":"Deuteronomy","deuteronomio":"Deuteronomy","dt":"Deuteronomy",
-    "josué":"Joshua","josue":"Joshua","js":"Joshua",
-    "juízes":"Judges","juizes":"Judges","jz":"Judges",
-    "rute":"Ruth","rt":"Ruth",
-    "1 samuel":"1 Samuel","1sm":"1 Samuel","i samuel":"1 Samuel",
-    "2 samuel":"2 Samuel","2sm":"2 Samuel","ii samuel":"2 Samuel",
-    "1 reis":"1 Kings","1rs":"1 Kings","i reis":"1 Kings",
-    "2 reis":"2 Kings","2rs":"2 Kings","ii reis":"2 Kings",
-    "1 crônicas":"1 Chronicles","1 cronicas":"1 Chronicles","i crônicas":"1 Chronicles",
-    "2 crônicas":"2 Chronicles","2 cronicas":"2 Chronicles","ii crônicas":"2 Chronicles",
-    "esdras":"Ezra","neemias":"Nehemiah","ester":"Esther","jó":"Job","jo":"Job",
-    "salmos":"Psalms","sl":"Psalms",
-    "provérbios":"Proverbs","proverbios":"Proverbs","pv":"Proverbs",
-    "eclesiastes":"Ecclesiastes","ec":"Ecclesiastes",
-    "cantares":"Song of Solomon","cântico dos cânticos":"Song of Solomon","ct":"Song of Solomon",
-    "isaías":"Isaiah","isaias":"Isaiah","is":"Isaiah",
-    "jeremias":"Jeremiah","jr":"Jeremiah",
-    "lamentações":"Lamentations","lamentacoes":"Lamentations","lm":"Lamentations",
-    "ezequiel":"Ezekiel","ez":"Ezekiel",
-    "daniel":"Daniel","dn":"Daniel",
-    "oséias":"Hosea","oseias":"Hosea","os":"Hosea",
-    "joel":"Joel","amós":"Amos","amos":"Amos","obadias":"Obadiah",
-    "jonas":"Jonah","miqueias":"Micah","naum":"Nahum",
-    "habacuque":"Habakkuk","sofonias":"Zephaniah","ageu":"Haggai",
-    "zacarias":"Zechariah","malaquias":"Malachi",
-    "mateus":"Matthew","mt":"Matthew",
-    "marcos":"Mark","mc":"Mark",
-    "lucas":"Luke","lc":"Luke",
-    "joão":"John","joao":"John","jo":"John",  // atenção pra não confundir com Jó (Job) – acima é "jó/jo"
-    "atos":"Acts","rm":"Romans","romanos":"Romans",
-    "1 coríntios":"1 Corinthians","1 corintios":"1 Corinthians",
-    "2 coríntios":"2 Corinthians","2 corintios":"2 Corinthians",
-    "gálatas":"Galatians","galatas":"Galatians",
-    "efésios":"Ephesians","efesios":"Ephesians",
-    "filipenses":"Philippians","colossenses":"Colossians",
-    "1 tessalonicenses":"1 Thessalonians","2 tessalonicenses":"2 Thessalonians",
-    "1 timóteo":"1 Timothy","2 timóteo":"2 Timothy",
-    "tito":"Titus","filemom":"Philemon",
-    "hebreus":"Hebrews","tiago":"James",
-    "1 pedro":"1 Peter","2 pedro":"2 Peter",
-    "1 joão":"1 John","2 joão":"2 John","3 joão":"3 John",
-    "judas":"Jude","apocalipse":"Revelation","ap":"Revelation"
-  }));
+const $ = (q, r=document) => r.querySelector(q);
 
-  function normalizeRefPTtoEN(input) {
-    // separa o primeiro “token” (livro) do restante
-    const raw = input.trim().replace(/\s+/g, ' ');
-    const m = raw.match(/^([1-3]?\s?[^\d:]+)/i);
-    if (!m) return raw; // deixa como está
-    const bookPT = m[1].toLowerCase().trim();
-    const mapped = bookMap.get(bookPT);
-    if (!mapped) return raw;
-    return mapped + raw.slice(m[1].length); // troca só o livro
-  }
+// carrega config e base do proxy
+const cfg = await fetch("assets/config.json", { cache:"no-store" }).then(r=>r.json());
+const API = cfg.proxy.workerBase.replace(/\/+$/,""); // ex.: https://rescue-proxy....workers.dev  :contentReference[oaicite:1]{index=1}
 
-  // ---------- elementos
-  const verseOut  = document.getElementById("vod-text");
-  const verseMeta = document.getElementById("vod-meta");
-  const copyBtn   = document.getElementById("btn-copy");
-  const qInput    = document.getElementById("q");
-  const verSel    = document.getElementById("ver-sel");
-  const btnSearch = document.getElementById("btn-search");
-  const resBox    = document.getElementById("search-result");
+$("#yy").textContent = new Date().getFullYear();
 
-  // popula select de versões
-  for (const [label, code] of Object.entries(cfg.biblia.versions)) {
-    const opt = document.createElement("option");
-    opt.value = code;
-    opt.textContent = label;
-    if (code === defaultVer) opt.selected = true;
-    verSel.appendChild(opt);
-  }
+/* Versões da Bíblia (mantém seu layout/DOM) */
+const verSel = $("#ver");
+Object.entries(cfg.biblia.versions).forEach(([label, val])=>{
+  const o = document.createElement("option");
+  o.value = val; o.textContent = label;
+  if (val === cfg.biblia.defaultVersion) o.selected = true;
+  verSel.appendChild(o);
+});
 
-  // Versículo do dia
-  async function loadVerseOfDay() {
-    try {
-      verseOut.textContent = "—";
-      verseMeta.textContent = "";
-      const ver = verSel.value || defaultVer;
+/* Utilitário para buscar texto de uma referência */
+async function getPassageText(ver, ref){
+  const url = `${API}/biblia/bible/content/${encodeURIComponent(ver)}.txt?passage=${encodeURIComponent(ref)}&style=oneVerse`;
+  const r = await fetch(url, { headers:{Accept:"text/plain"} });
+  if (!r.ok) return "";
+  return (await r.text()).trim();
+}
 
-      const vod = await (await fetch(`${proxyBase}/api/verse-of-day?ver=${encodeURIComponent(ver)}`)).json();
+/* Versículo do dia (com fallback para garantir TEXTO) */
+async function loadVerseOfDay(){
+  const ver = verSel.value || cfg.biblia.defaultVersion;
+  try{
+    const r = await fetch(`${API}/api/verse-of-day?ver=${encodeURIComponent(ver)}`);
+    if(!r.ok) throw new Error(await r.text());
+    const j = await r.json(); // { ref, version, text }
 
-      // normaliza a ref em PT para EN antes de buscar o texto
-      const englishRef = normalizeRefPTtoEN(vod.ref);
-
-      const txtUrl = `${proxyBase}/biblia/bible/content/${ver}.txt?passage=${encodeURIComponent(englishRef)}`;
-      const txt = await (await fetch(txtUrl)).text();
-
-      verseOut.textContent  = txt && txt.trim() ? txt.trim() : "—";
-      verseMeta.textContent = `(${vod.ref} — ${ver})`;
-    } catch (e) {
-      verseOut.textContent = "Não foi possível carregar agora. Tente novamente mais tarde.";
-      verseMeta.textContent = "";
+    let text = j.text || "";
+    if (!text && j.ref) {
+      // fallback: pega o texto da referência via /biblia/...
+      text = await getPassageText(ver, j.ref);
     }
-  }
 
-  // Busca por passagem
-  async function search() {
-    const raw = (qInput.value || "").trim();
-    if (!raw) return;
-    resBox.textContent = "Carregando...";
-
-    try {
-      const ver = verSel.value || defaultVer;
-      const norm = normalizeRefPTtoEN(raw);                // ex.: "Salmos 23" -> "Psalms 23"
-      const url  = `${proxyBase}/biblia/bible/content/${ver}.txt?passage=${encodeURIComponent(norm)}`;
-
-      const r = await fetch(url);
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      const text = (await r.text()).trim();
-
-      resBox.textContent = text || "Nenhum resultado. Tente outra referência (ex.: João 3:16).";
-    } catch (e) {
-      resBox.textContent = "Erro na consulta. Tente outra palavra ou referência (ex.: João 3:16).";
+    if (text) {
+      $("#vday").textContent   = text;
+      $("#vdayRef").textContent = `(${j.ref} — ${j.version})`;
+    } else {
+      $("#vday").textContent    = "Não foi possível carregar agora.";
+      $("#vdayRef").textContent = "Tente novamente mais tarde.";
     }
+  }catch(e){
+    console.warn("V-OF-DAY", e);
+    $("#vday").textContent    = "Não foi possível carregar agora.";
+    $("#vdayRef").textContent = "Tente novamente mais tarde.";
   }
+}
+$("#btnCopy").onclick = () => {
+  const t = `${$("#vday").textContent} ${$("#vdayRef").textContent}`;
+  navigator.clipboard.writeText(t);
+};
+await loadVerseOfDay();
 
-  copyBtn?.addEventListener("click", () => {
-    const t = verseOut.textContent.trim();
-    if (!t) return;
-    navigator.clipboard.writeText(t);
-    copyBtn.classList.add("copied");
-    setTimeout(()=>copyBtn.classList.remove("copied"), 900);
-  });
+/* Busca na Bíblia (mesmo layout/DOM) */
+async function runSearch(){
+  const q = $("#q").value.trim();
+  let ver = $("#ver").value || cfg.biblia.defaultVersion;
+  if(!q){ $("#result").textContent=""; return; }
 
-  btnSearch?.addEventListener("click", search);
-  qInput?.addEventListener("keydown", (e)=>{ if (e.key === "Enter") search(); });
+  $("#result").textContent = "Procurando...";
+  try{
+    // primeira tentativa com a versão escolhida
+    let url = `${API}/biblia/bible/content/${encodeURIComponent(ver)}.txt?passage=${encodeURIComponent(q)}&style=oneVerse`;
+    let r = await fetch(url, { headers:{Accept:"text/plain"} });
+    let text = (await r.text()).trim();
 
-  // start
-  loadVerseOfDay();
-})();
+    // Fallback para NTLH (caso a versão escolhida retorne vazio/erro)
+    if(!r.ok || !text){
+      ver = "POR-NTLH";
+      url = `${API}/biblia/bible/content/${ver}.txt?passage=${encodeURIComponent(q)}&style=oneVerse`;
+      r = await fetch(url, { headers:{Accept:"text/plain"} });
+      text = (await r.text()).trim();
+    }
+
+    if(!text) throw new Error("sem texto");
+    $("#result").textContent = text;
+  }catch(e){
+    console.warn("SEARCH", e);
+    $("#result").textContent = "Erro na consulta. Tente outra palavra ou referência (ex.: João 3:16).";
+  }
+}
+$("#btnSearch").onclick = runSearch;
+$("#q").addEventListener("keydown", e=>e.key==="Enter" && runSearch());
