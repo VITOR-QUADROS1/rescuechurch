@@ -1,22 +1,23 @@
 {
-  "provider": "biblia.com",
+  "provider": "biblia",
   "biblia": {
     "apiBase": "https://api.biblia.com/v1",
-    "versions": {
+    "versionMap": {
       "NVI (pt-BR)": "POR-NVI",
       "ARA (pt-BR)": "POR-ARA",
       "NTLH (pt-BR)": "POR-NTLH"
     },
     "defaultVersion": "NVI (pt-BR)"
   },
+
   "proxy": {
     "useWorker": true,
-    "workerBase": "https://rescue-proxy.vitorpauloquadrados.workers.dev" 
+    "workerBase": "https://rescue-proxy.vitorpaulojuquadros.workers.dev"
   },
+
   "youtube": {
-    "channelId": "COLOQUE_AQUI_O_CHANNEL_ID",
-    "shortsPlaylist": "PL_ID_DOS_SHORTS",
-    "fullPlaylist": "PL_ID_DAS_MENSAGENS",
-    "maxItems": 12
+    "channelId": "UCxxxxxxxxxxxxxxxx",        // <= troque por seu canal
+    "shortsPlaylist": "",                       // opcional (pode deixar vazio)
+    "fullPlaylist": ""                          // opcional (pode deixar vazio)
   }
 }
