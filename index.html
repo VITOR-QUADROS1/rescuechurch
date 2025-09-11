@@ -1,64 +1,90 @@
-<!-- topo / nav -->
-<div class="nav container">
-  <div class="logo">
-    <img src="assets/logo.png" alt="Rescue">
-    <strong>Igreja de Resgate</strong>
-  </div>
-  <div class="menu">
-    <a href="#inicio">Início</a>&nbsp;&nbsp;
-    <a href="#versiculo">Versículo do Dia</a>&nbsp;&nbsp;
-    <a href="#biblia">Buscar na Bíblia</a>&nbsp;&nbsp;
-    <a href="#videos">Vídeos & Lives</a>
-  </div>
-</div>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Igreja de Resgate</title>
 
-<!-- hero -->
-<div class="container">
-  <div class="hero card"></div>
-</div>
+  <!-- CSS (com bust de cache) -->
+  <link rel="preload" href="assets/style.css?v=5" as="style">
+  <link rel="stylesheet" href="assets/style.css?v=5">
 
-<!-- Versículo do dia -->
-<section id="versiculo" class="container section card">
-  <h2>Versículo do dia
-    <button id="copyVerseBtn" class="btn copy">Copiar 📋</button>
-  </h2>
-  <div id="verseText" class="mono">Carregando...</div>
-</section>
-
-<!-- Buscar na Bíblia -->
-<section id="biblia" class="container section card">
-  <h2>Buscar na Bíblia</h2>
-  <div class="row">
-    <div class="input">
-      <input id="bibleQuery" placeholder="Ex.: João 3:16 ou 'amor fé esperança'">
-      <select id="versionSelect"></select>
+  <!-- Config + App -->
+  <link rel="preload" href="assets/config.json?v=2" as="fetch" crossorigin="anonymous">
+  <script src="assets/app.js?v=9" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="dot"></span>
+      <span>Igreja de Resgate</span>
     </div>
-    <button id="searchBtn" class="btn">Procurar</button>
-  </div>
-  <div id="bibleResult" class="result mono"></div>
-</section>
+    <nav class="menu">
+      <a href="#inicio">Início</a>
+      <a href="#verso">Versículo do Dia</a>
+      <a href="#busca">Buscar na Bíblia</a>
+      <a href="#midia">Vídeos & Lives</a>
+    </nav>
+  </header>
 
-<!-- Vídeos -->
-<section id="videos" class="container section card">
-  <h2>Vídeos & Lives</h2>
+  <!-- HERO: imagem preenche sem cortar (contain) com fundo gradiente -->
+  <section id="inicio" class="hero">
+    <div class="hero__bg"></div>
+  </section>
 
-  <div class="grid-vid">
-    <div class="live">
-      <h3>Ao vivo</h3>
-      <iframe id="liveFrame" allowfullscreen></iframe>
-      <div class="mono">Se estiver ao vivo, aparece aqui. Caso contrário, mostra o último vídeo.</div>
-    </div>
+  <main class="container">
+    <!-- Versículo do dia -->
+    <section id="verso" class="card">
+      <div class="card__title">
+        <h2>Versículo do dia</h2>
+        <button id="btnCopy" class="btn btn--ghost">Copiar 📋</button>
+      </div>
+      <div id="votd" class="votd">
+        <div class="loading">Carregando...</div>
+      </div>
+      <div id="votdHint" class="hint">Dica: clique no texto para copiar.</div>
+    </section>
 
-    <div>
-      <h3>Curtos</h3>
-      <div id="shortsRail" class="rail"></div>
-    </div>
-  </div>
+    <!-- Buscar na Bíblia -->
+    <section id="busca" class="card">
+      <h2>Buscar na Bíblia</h2>
+      <form id="formBusca" class="search">
+        <input id="q" class="input" type="text" placeholder="Ex.: João 3:16 ou 'amor fé esperança'" />
+        <select id="ver" class="select"></select>
+        <button class="btn btn--primary" type="submit">Procurar</button>
+      </form>
+      <div class="hint">Dica: referências aceitam variações (“Joao 3:16”, “Salmos 23”).</div>
+      <div id="resultado" class="result"></div>
+    </section>
 
-  <div style="margin-top:18px">
-    <h3>Mensagens completas</h3>
-    <div id="fullRail" class="rail"></div>
-  </div>
-</section>
+    <!-- Vídeos -->
+    <section id="midia" class="card">
+      <h2>Vídeos & Lives</h2>
 
-<script src="assets/app.js" defer></script>
+      <div class="grid">
+        <div class="col">
+          <h3>Ao vivo</h3>
+          <div class="player">
+            <div id="livePlayer" class="yt-player"></div>
+          </div>
+          <div class="muted">Se estiver ao vivo aparece aqui. Caso contrário, mostra a última live.</div>
+        </div>
+
+        <div class="col">
+          <h3>Curtos</h3>
+          <div id="shorts" class="rail"></div>
+        </div>
+      </div>
+
+      <div class="block">
+        <h3>Mensagens completas</h3>
+        <div id="full" class="rail"></div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div>© <span id="y"></span> Igreja de Resgate — feito com amor</div>
+    </footer>
+  </main>
+</body>
+</html>
