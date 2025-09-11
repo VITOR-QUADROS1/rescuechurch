@@ -1,5 +1,5 @@
 {
-  "provider": "biblia",
+  "provider": "biblia.com",
   "biblia": {
     "apiBase": "https://api.biblia.com/v1",
     "versions": {
@@ -11,11 +11,12 @@
   },
   "proxy": {
     "useWorker": true,
-    "workerBase": "https://rescue-proxy.vitorpauloquadros.workers.dev"   // <-- sem / no fim
+    "workerBase": "https://rescue-proxy.vitorpauloquadrados.workers.dev" 
   },
   "youtube": {
-    "channelId": "UCCCCXXXXXXXXXXXXXXX",
-    "shortsPlaylist": "PL_SHORTS_ID_AQUI",
-    "fullPlaylist": "PL_MENSAGENS_ID_AQUI"
+    "channelId": "COLOQUE_AQUI_O_CHANNEL_ID",
+    "shortsPlaylist": "PL_ID_DOS_SHORTS",
+    "fullPlaylist": "PL_ID_DAS_MENSAGENS",
+    "maxItems": 12
   }
 }
