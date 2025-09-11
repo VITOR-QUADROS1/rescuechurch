@@ -46,7 +46,7 @@ async function searchBible(q, version){
 
   const ref = parseRefPT(q);
 
-  // 1) Referência direta (via Worker)
+  // 1) Referência direta
   if(ref){
     try{
       const p = new URLSearchParams({version, book:ref.book, chapter:ref.chapter});
@@ -61,7 +61,7 @@ async function searchBible(q, version){
     }catch{}
   }
 
-  // 2) Busca textual (via Worker)
+  // 2) Busca textual
   try{
     const r = await fetch(`${API_BASE}/search?version=${encodeURIComponent(version)}&q=${encodeURIComponent(q)}`);
     const j = await r.json();
@@ -75,17 +75,11 @@ async function searchBible(q, version){
 }
 
 /* ========= YOUTUBE ========= */
-/* Preencha abaixo quando tiver os IDs/Playlists:
-   - UC: Channel ID (começa com UC...)
-   - UU: Uploads playlist (começa com UU..., opcional se tiver UC)
-   - PL_SHORTS: playlist só de curtos, se tiver
-   - PL_FULL:  playlist de mensagens completas, se tiver
-*/
 function applyYouTubeEmbeds(){
-  const UC = "";           // ex.: "UCxxxxxxxxxxxxxxxxxxxxxx"
-  const UU = "";           // ex.: "UUxxxxxxxxxxxxxxxxxxxxxx" (uploads)
-  const PL_SHORTS = "";    // playlist de curtos (opcional)
-  const PL_FULL   = "";    // playlist de mensagens completas (opcional)
+  const UC = "";           // ex.: UCxxxxxxxxxxxxxxxxxxxxxx
+  const UU = "";           // ex.: UUxxxxxxxxxxxxxxxxxxxxxx (uploads)
+  const PL_SHORTS = "";    // playlist curtos
+  const PL_FULL   = "";    // playlist mensagens completas
 
   $("#liveFrame").src = UC
     ? `https://www.youtube.com/embed/live_stream?channel=${encodeURIComponent(UC)}&rel=0`
@@ -103,7 +97,7 @@ function applyYouTubeEmbeds(){
 
 /* ========= BOOT ========= */
 document.addEventListener("DOMContentLoaded", ()=>{
-  try{$("#yy").textContent = new Date().getFullYear();}catch{}
+  $("#yy").textContent = new Date().getFullYear();
   loadVerseOfDay();
   applyYouTubeEmbeds();
 
