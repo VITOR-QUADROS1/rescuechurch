@@ -1,88 +1,58 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Igreja de Resgate — Rescue Church</title>
-  <link rel="preconnect" href="https://i.ytimg.com">
-  <link rel="preconnect" href="https://www.youtube.com">
-  <link rel="stylesheet" href="assets/style.css" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Igreja de Resgate</title>
+  <link rel="stylesheet" href="/assets/style.css" />
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <img src="assets/logo.png" alt="Rescue Church" class="brand-logo" />
-      <span>Igreja de Resgate</span>
-    </div>
-    <nav class="menu">
-      <a href="#inicio">Início</a>
-      <a href="#versiculo">Versículo do Dia</a>
-      <a href="#biblia">Buscar na Bíblia</a>
-      <a href="#videos">Vídeos & Lives</a>
-    </nav>
-  </header>
-
-  <main id="inicio" class="container">
+  <div class="container">
     <!-- HERO -->
-    <section id="hero" class="card hero">
-      <img src="assets/logo.png" alt="Rescue Church" class="hero-img" />
-    </section>
+    <div class="hero"></div>
 
-    <!-- VERSÍCULO DO DIA -->
-    <section id="versiculo" class="card">
-      <div class="card-head">
+    <!-- Versículo do Dia -->
+    <div class="card-block">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
         <h2>Versículo do dia</h2>
-        <button id="btnCopiar" class="btn ghost">Copiar 📋</button>
+        <button id="btnCopy" class="btn">Copiar 📋</button>
       </div>
-      <p id="textoDia" class="muted">Carregando...</p>
-      <small id="refDia" class="ref muted"></small>
-    </section>
+      <div id="verseText">Carregando...</div>
+    </div>
 
-    <!-- BUSCAR NA BÍBLIA -->
-    <section id="biblia" class="card">
+    <!-- Buscar na Bíblia -->
+    <div class="card-block">
       <h2>Buscar na Bíblia</h2>
-      <div class="row">
-        <input id="q" class="input" placeholder="Ex.: João 3:16 ou 'amor fé esperança'">
-        <select id="ver" class="select"></select>
-        <button id="btnBuscar" class="btn">Procurar</button>
+      <div class="inline" style="margin:.6rem 0 0">
+        <input id="search" placeholder="Ex.: João 3:16 ou 'amor fé esperança'">
+        <select id="version"></select>
+        <button id="btnSearch" class="btn">Procurar</button>
       </div>
-      <small class="muted">Dica: referências aceitam variações (“Joao 3:16”, “Salmos 23”).</small>
-      <div id="resultado" class="result"></div>
-    </section>
+      <div id="results"></div>
+      <div class="muted" style="margin-top:.6rem">Dica: referências aceitam variações (“Joao 3:16”, “Salmos 23”).</div>
+    </div>
 
-    <!-- VÍDEOS & LIVES -->
-    <section id="videos" class="card">
+    <!-- Vídeos & Lives -->
+    <div class="card-block">
       <h2>Vídeos & Lives</h2>
 
-      <div class="grid-2">
-        <div class="video-card">
+      <div class="row" style="margin-top:12px">
+        <div>
           <h3>Ao vivo</h3>
-          <div class="player">
-            <!-- O YouTube mostra a live atual; se não houver, mostra a última live -->
-            <iframe id="liveFrame" title="Live"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowfullscreen loading="lazy"></iframe>
-          </div>
-          <small class="muted">Se estiver ao vivo, aparece aqui. Caso contrário, mostra a última live.</small>
+          <div id="live"></div>
+          <div class="muted" style="margin-top:.5rem">Se estiver ao vivo, aparece aqui. Caso contrário, mostra o último vídeo.</div>
         </div>
-
-        <div class="video-card">
+        <div>
           <h3>Curtos</h3>
-          <div id="shortsRow" class="carousel"></div>
+          <div id="shortsRail" class="rail"></div>
         </div>
       </div>
 
-      <div class="video-card">
-        <h3>Mensagens completas</h3>
-        <div id="fullRow" class="carousel"></div>
-      </div>
-    </section>
-  </main>
+      <h3 style="margin-top:18px">Mensagens completas</h3>
+      <div id="fullRail" class="rail"></div>
+    </div>
+  </div>
 
-  <footer class="footer">
-    © <span id="year"></span> Igreja de Resgate — feito com amor
-  </footer>
-
-  <script src="assets/app.js" type="module"></script>
+  <script src="/assets/app.js" defer></script>
 </body>
 </html>
