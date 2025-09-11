@@ -1,139 +1,168 @@
-// app.js (ESM com top-level await)
+(async function () {
+  // Helpers rápidos
+  const $ = (sel, el = document) => el.querySelector(sel);
 
-const $ = (q, r=document) => r.querySelector(q);
+  // Carrega config
+  const cfg = await fetch("assets/config.json").then(r => r.json());
+  const WORKER = cfg.proxy.workerBase.replace(/\/+$/, "");
+  const DEF_VER = cfg.biblia.defaultVersion;
 
-const cfg = await fetch("assets/config.json", { cache:"no-store" }).then(r=>r.json());
-const API = cfg.proxy.workerBase.replace(/\/+$/,"");
+  // Preenche select de versões
+  const selVer = $("#ver");
+  Object.entries(cfg.biblia.versions).forEach(([label, code]) => {
+    const opt = document.createElement("option");
+    opt.value = code; opt.textContent = label;
+    if (code === DEF_VER) opt.selected = true;
+    selVer.appendChild(opt);
+  });
 
-$("#yy").textContent = new Date().getFullYear();
+  // ====== Versículo do dia ======
+  const boxVdo = $("#vdo");
+  const btnCopiar = $("#btnCopiar");
+  btnCopiar.addEventListener("click", () => {
+    const txt = boxVdo.textContent.trim();
+    if (!txt) return;
+    navigator.clipboard.writeText(txt);
+    btnCopiar.textContent = "Copiado ✔";
+    setTimeout(() => (btnCopiar.textContent = "Copiar 📋"), 1500);
+  });
+  boxVdo.addEventListener("click", () => btnCopiar.click());
 
-/* Versões da Bíblia */
-const verSel = $("#ver");
-Object.entries(cfg.biblia.versions).forEach(([label, val])=>{
-  const o = document.createElement("option");
-  o.value = val; o.textContent = label;
-  if (val === cfg.biblia.defaultVersion) o.selected = true;
-  verSel.appendChild(o);
-});
-
-/* Versículo do dia */
-async function loadVerseOfDay(){
-  const ver = verSel.value || cfg.biblia.defaultVersion;
-  try{
-    const r = await fetch(`${API}/api/verse-of-day?ver=${encodeURIComponent(ver)}`);
-    if(!r.ok) throw new Error(await r.text());
-    const j = await r.json();
-    $("#vday").textContent = j.text || "—";
-    $("#vdayRef").textContent = j.ref ? `(${j.ref} — ${j.version})` : "";
-  }catch(e){
-    console.warn("V-OF-DAY", e);
-    $("#vday").textContent = "Não foi possível carregar agora.";
-    $("#vdayRef").textContent = "Tente novamente mais tarde.";
-  }
-}
-$("#btnCopy").onclick = () => {
-  const t = `${$("#vday").textContent} ${$("#vdayRef").textContent}`;
-  navigator.clipboard.writeText(t);
-};
-await loadVerseOfDay();
-
-/* Busca na Bíblia */
-async function runSearch(){
-  const q = $("#q").value.trim();
-  let ver = $("#ver").value || cfg.biblia.defaultVersion;
-  if(!q){ $("#result").textContent=""; return; }
-  $("#result").textContent = "Procurando...";
-  try{
-    let url = `${API}/biblia/bible/content/${encodeURIComponent(ver)}.txt?passage=${encodeURIComponent(q)}&style=oneVerse`;
-    let r = await fetch(url, { headers:{Accept:"text/plain"} });
-    let text = (await r.text()).trim();
-
-    // Fallback de versão se vier vazio/erro
-    if(!r.ok || !text){
-      ver = "POR-NTLH";
-      url = `${API}/biblia/bible/content/${ver}.txt?passage=${encodeURIComponent(q)}&style=oneVerse`;
-      r = await fetch(url, { headers:{Accept:"text/plain"} });
-      text = (await r.text()).trim();
+  try {
+    // 1) referência do dia
+    const vResp = await fetch(`${WORKER}/api/verse-of-day?ver=${encodeURIComponent(DEF_VER)}`);
+    const vJson = await vResp.json(); // { ref, version }
+    // 2) busca o texto
+    const texto = await fetchPassageText(vJson.ref, vJson.version);
+    if (texto) {
+      boxVdo.textContent = `${vJson.ref}\n${texto.trim()}`;
+    } else {
+      erroVDia();
     }
-
-    if(!text) throw new Error("sem texto");
-    $("#result").textContent = text;
-  }catch(e){
-    console.warn("SEARCH", e);
-    $("#result").textContent = "Erro na consulta. Tente outra palavra ou referência (ex.: João 3:16).";
+  } catch (e) {
+    erroVDia();
   }
-}
-$("#btnSearch").onclick = runSearch;
-$("#q").addEventListener("keydown", e=>e.key==="Enter" && runSearch());
 
-/* ======= VÍDEOS ======= */
+  function erroVDia(){
+    boxVdo.textContent = "Não foi possível carregar agora.\nTente novamente mais tarde.";
+  }
 
-function card(v){
-  const a=document.createElement("a");
-  a.className="hitem"; a.href=`https://www.youtube.com/watch?v=${v.id}`; a.target="_blank"; a.rel="noopener";
-  a.innerHTML = `
-    <img class="hthumb" src="${v.thumb}" alt="">
-    <div class="hmeta">
-      <div class="t">${v.title}</div>
-      <div class="s">${new Date(v.published).toLocaleDateString("pt-BR")}</div>
-    </div>
-  `;
-  return a;
-}
-function dragScroll(el){
-  let down=false,start,orig;
-  el.addEventListener("pointerdown",e=>{down=true;start=e.pageX;orig=el.scrollLeft;el.setPointerCapture(e.pointerId);el.style.cursor="grabbing";});
-  el.addEventListener("pointermove",e=>{if(!down)return;el.scrollLeft = orig-(e.pageX-start);});
-  const up=()=>{down=false;el.style.cursor="grab";};
-  el.addEventListener("pointerup",up);el.addEventListener("pointerleave",up);el.addEventListener("pointercancel",up);
-  el.style.cursor="grab";
-}
+  // ====== Busca ======
+  $("#btnBuscar").addEventListener("click", onBuscar);
+  $("#q").addEventListener("keydown", (e)=>{ if (e.key==="Enter") onBuscar(); });
 
-async function loadList(by, val, targetSel){
-  try{
-    const url = by==="playlist"
-      ? `${API}/api/youtube?playlist=${encodeURIComponent(val)}`
-      : `${API}/api/youtube?channel=${encodeURIComponent(val)}`;
-    const r = await fetch(url);
-    if(!r.ok) return;
-    const j = await r.json();
-    const box = $(targetSel); box.innerHTML="";
-    j.items.forEach(x=>box.appendChild(card(x)));
-    dragScroll(box);
-  }catch(e){ console.warn("loadList", e); }
-}
+  async function onBuscar(){
+    const q = $("#q").value.trim();
+    const verCode = $("#ver").value;
+    const out = $("#resultado");
+    out.textContent = "";
 
-async function setupLive(){
-  const ch = cfg.youtube.channelId;
-  const frame = $("#liveFrame");
-
-  // tenta /live; se não, usa último vídeo
-  try{
-    const r = await fetch(`${API}/api/youtube/live?channel=${encodeURIComponent(ch)}`);
-    const j = await r.json();
-    if(j.isLive && j.id){
-      frame.src = `https://www.youtube-nocookie.com/embed/${j.id}?autoplay=1&mute=1`;
-      return;
+    if (!q) return;
+    const refEN = toEnglishRef(q);
+    try{
+      const texto = await fetchPassageText(refEN, verCode);
+      if (texto && texto.trim()) out.textContent = texto.trim();
+      else out.textContent = "Erro na consulta. Tente outra palavra ou referência (ex.: João 3:16).";
+    }catch(e){
+      out.textContent = "Erro na consulta. Tente outra palavra ou referência (ex.: João 3:16).";
     }
-  }catch(e){ /* continua */ }
-
-  // Fallback: últimos uploads do canal
-  try{
-    const up = await fetch(`${API}/api/youtube?channel=${encodeURIComponent(ch)}`);
-    const j = await up.json();
-    const id = j.items?.[0]?.id;
-    if(id) frame.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1`;
-    else frame.src = `https://www.youtube-nocookie.com/embed/live_stream?channel=${encodeURIComponent(ch)}&autoplay=1&mute=1`;
-  }catch(e){
-    frame.src = `https://www.youtube-nocookie.com/embed/live_stream?channel=${encodeURIComponent(ch)}&autoplay=1&mute=1`;
   }
-}
-await setupLive();
 
-// Carrosseis — usa playlists se você tiver, senão cai para uploads do canal
-const CH = cfg.youtube.channelId;
-if (cfg.youtube.shortsPlaylist) await loadList("playlist", cfg.youtube.shortsPlaylist, "#shorts");
-else await loadList("channel", CH, "#shorts");
+  // ===== Helpers =====
 
-if (cfg.youtube.fullPlaylist) await loadList("playlist", cfg.youtube.fullPlaylist, "#fulls");
-else await loadList("channel", CH, "#fulls");
+  // Busca texto via proxy Biblia.com
+  async function fetchPassageText(ref, version){
+    // Ex.: /biblia/bible/content/POR-NTLH.txt?passage=Psalms%2023
+    const url = `${WORKER}/biblia/bible/content/${encodeURIComponent(version)}.txt?passage=${encodeURIComponent(ref)}&style=oneVersePerLine`;
+    const resp = await fetch(url, { headers: { "accept": "text/plain" }});
+    if (!resp.ok) return "";
+    return await resp.text();
+  }
+
+  // Converte referência PT-BR → EN (melhora acerto da API)
+  function toEnglishRef(input){
+    const s = deaccent(input.toLowerCase()).replace(/\s+/g," ").trim();
+    const map = [
+      [/^(gen|genes|genesis|gn)/, "Genesis"],
+      [/^(exo|exodo|exodus|ex)/, "Exodus"],
+      [/^(lev|levitico)/, "Leviticus"],
+      [/^(num|numeros)/, "Numbers"],
+      [/^(deu|deuteronomio)/, "Deuteronomy"],
+      [/^(jos|josue)/, "Joshua"],
+      [/^(jui|juizes|juizes)/, "Judges"],
+      [/^(rute)/, "Ruth"],
+      [/^(1 ?sam|i ?sam|1samuel)/, "1 Samuel"],
+      [/^(2 ?sam|ii ?sam|2samuel)/, "2 Samuel"],
+      [/^(1 ?reis|i ?reis)/, "1 Kings"],
+      [/^(2 ?reis|ii ?reis)/, "2 Kings"],
+      [/^(1 ?cron|i ?cron|1cronicas)/, "1 Chronicles"],
+      [/^(2 ?cron|ii ?cron|2cronicas)/, "2 Chronicles"],
+      [/^(esd|esdras)/, "Ezra"],
+      [/^(neem|neemias)/, "Nehemiah"],
+      [/^(est|ester)/, "Esther"],
+      [/^(jo\b|job)/, "Job"],
+      [/^(salmo?s?|sl\b)/, "Psalms"],
+      [/^(prov|proverbios)/, "Proverbs"],
+      [/^(ecl|eclesiastes)/, "Ecclesiastes"],
+      [/^(cant|cantares|cantico)/, "Song of Solomon"],
+      [/^(isa|isaias)/, "Isaiah"],
+      [/^(jer|jeremias)/, "Jeremiah"],
+      [/^(lam|lamentacoes)/, "Lamentations"],
+      [/^(eze|ezequiel)/, "Ezekiel"],
+      [/^(dan|daniel)/, "Daniel"],
+      [/^(ose|oseias)/, "Hosea"],
+      [/^(joe|joel)/, "Joel"],
+      [/^(amo|amos)/, "Amos"],
+      [/^(oba|obadias)/, "Obadiah"],
+      [/^(jon|jonas)/, "Jonah"],
+      [/^(miq|miqueias)/, "Micah"],
+      [/^(naum)/, "Nahum"],
+      [/^(hab|habacuque)/, "Habakkuk"],
+      [/^(sof|sofonias)/, "Zephaniah"],
+      [/^(ag|ageu)/, "Haggai"],
+      [/^(zac|zacarias)/, "Zechariah"],
+      [/^(mal|malaquias)/, "Malachi"],
+      [/^(mat|mateus)/, "Matthew"],
+      [/^(mar|marcos)/, "Mark"],
+      [/^(luc|lucas)/, "Luke"],
+      [/^(joa|joao)/, "John"],
+      [/^(ato|atos)/, "Acts"],
+      [/^(rom|romanos)/, "Romans"],
+      [/^(1 ?cor|i ?cor)/, "1 Corinthians"],
+      [/^(2 ?cor|ii ?cor)/, "2 Corinthians"],
+      [/^(gal|galatas)/, "Galatians"],
+      [/^(efe|efesios)/, "Ephesians"],
+      [/^(fili|filipenses)/, "Philippians"],
+      [/^(col|colossenses)/, "Colossians"],
+      [/^(1 ?tes|i ?tes|1tessalonicenses)/, "1 Thessalonians"],
+      [/^(2 ?tes|ii ?tes|2tessalonicenses)/, "2 Thessalonians"],
+      [/^(1 ?tim|i ?tim)/, "1 Timothy"],
+      [/^(2 ?tim|ii ?tim)/, "2 Timothy"],
+      [/^(tit|tito)/, "Titus"],
+      [/^(file|filemon)/, "Philemon"],
+      [/^(heb|hebreus)/, "Hebrews"],
+      [/^(tia|tiago)/, "James"],
+      [/^(1 ?ped|i ?ped)/, "1 Peter"],
+      [/^(2 ?ped|ii ?ped)/, "2 Peter"],
+      [/^(1 ?joa|i ?joa)/, "1 John"],
+      [/^(2 ?joa|ii ?joa)/, "2 John"],
+      [/^(3 ?joa|iii ?joa)/, "3 John"],
+      [/^(jud|judas)/, "Jude"],
+      [/^(apo|apocalipse)/, "Revelation"]
+    ];
+
+    let livro = s, resto = "";
+    const m = s.match(/^([a-z0-9º ]+?)\s+(.+)$/i);
+    if (m) { livro = m[1]; resto = m[2]; }
+
+    let en = "John";
+    for (const [regex, name] of map) {
+      if (regex.test(livro)) { en = name; break; }
+    }
+    return (en + " " + resto).trim();
+  }
+
+  function deaccent(str){
+    return str.normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+  }
+})();
