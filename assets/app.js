@@ -1,190 +1,192 @@
-/* globals window, document, fetch, localStorage */
-(async () => {
-  // ---- carrega config com fallback
-  let CFG = {};
+(async function () {
+  const $ = (sel, ctx=document) => ctx.querySelector(sel);
+  const $$ = (sel, ctx=document) => [...ctx.querySelectorAll(sel)];
+  const byId = id => document.getElementById(id);
+
+  const year = new Date().getFullYear();
+  byId('y').textContent = year;
+
+  // Carrega config
+  let cfg;
   try {
-    CFG = await (await fetch('assets/config.json', {cache:'no-store'})).json();
+    const r = await fetch('assets/config.json?v=2', {cache:'no-store'});
+    cfg = await r.json();
   } catch (e) {
-    console.error('config.json não carregado', e);
-    CFG = {};
+    console.error('Falha ao ler config.json', e);
+    return;
   }
 
-  // --------- helpers
-  const $ = (sel, root = document) => root.querySelector(sel);
-  const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
-  const sleep = ms => new Promise(r => setTimeout(r, ms));
-
-  const proxyBase = (CFG.proxy?.useWorker && CFG.proxy?.workerBase) ?
-    CFG.proxy.workerBase.replace(/\/+$/, '') : '';
-
-  const bibliaVerMap = CFG.biblia?.versionMap || {
-    'NVI (pt-BR)': 'POR-NVI',
-    'ARA (pt-BR)': 'POR-ARA',
-    'NTLH (pt-BR)': 'POR-NTLH'
+  const workerBase = cfg.proxy?.useWorker ? cfg.proxy.workerBase.replace(/\/+$/,'') : '';
+  const API = {
+    verseOfDay: (verCode) => `${workerBase}/api/verse-of-day?ver=${encodeURIComponent(verCode||'POR-NVI')}`,
+    bibleContent: (verCode, ref) => `${workerBase}/biblia/bible/content/${encodeURIComponent(verCode)}.txt?passage=${encodeURIComponent(ref)}`,
+    bibleSearch: (verCode, q) => `${workerBase}/biblia/bible/search/${encodeURIComponent(verCode)}.js?query=${encodeURIComponent(q)}`,
+    ytUploads: (channelId) => `${workerBase}/api/youtube/uploads?channel=${encodeURIComponent(channelId)}`,
+    ytPlaylist: (playlistId) => `${workerBase}/api/youtube/playlist?id=${encodeURIComponent(playlistId)}`,
+    ytLive: (channelId) => `${workerBase}/api/youtube/live?channel=${encodeURIComponent(channelId)}`
   };
-  const defaultVerLabel = CFG.biblia?.defaultVersion || 'NVI (pt-BR)';
-  const defaultVerCode  = bibliaVerMap[defaultVerLabel] || 'POR-NVI';
 
-  // ---------- HERO (imagem cobrindo)
-  const hero = $('.hero');
-  if (hero) {
-    hero.style.setProperty('--hero-url', `url('assets/logo.png')`);
+  /* ---------- HERO ---------- */
+  // usa logo.png por padrão
+  $('.hero__bg').style.setProperty('--hero-url', "url('assets/logo.png')");
+
+  /* ---------- SELECT de versões ---------- */
+  const selVer = byId('ver');
+  const vers = cfg.bible.versions;
+  for (const [label, code] of Object.entries(vers)){
+    const opt = document.createElement('option');
+    opt.textContent = label; opt.value = code;
+    if (label === cfg.bible.defaultVersion) opt.selected = true;
+    selVer.appendChild(opt);
   }
 
-  // ---------- UI: popular combo versões
-  const verSel = $('#versionSelect');
-  if (verSel) {
-    verSel.innerHTML = '';
-    Object.entries(bibliaVerMap).forEach(([label, code]) => {
-      const opt = document.createElement('option');
-      opt.value = code;
-      opt.textContent = label;
-      if (label === defaultVerLabel) opt.selected = true;
-      verSel.appendChild(opt);
+  /* ---------- Versículo do dia ---------- */
+  const votdEl = byId('votd');
+  const btnCopy = byId('btnCopy');
+  let votdText = '';
+
+  async function loadVOTD() {
+    try {
+      const ver = selVer.value || vers[cfg.bible.defaultVersion];
+      const r = await fetch(API.verseOfDay(ver), {cache:'no-store'});
+      if (!r.ok) throw new Error('votd http '+r.status);
+      const data = await r.json(); // {ref, version, text}
+      votdText = `${data.text}\n— ${data.ref} (${data.version})`;
+      votdEl.textContent = votdText;
+      votdEl.classList.remove('loading');
+    } catch (e) {
+      console.error(e);
+      votdEl.innerHTML = `<div class="muted">Não foi possível carregar agora.<br/>Tente novamente mais tarde.</div>`;
+    }
+  }
+  loadVOTD();
+
+  votdEl.addEventListener('click', () => copy(votdText));
+  btnCopy.addEventListener('click', () => copy(votdText));
+  function copy(t){
+    if (!t) return;
+    navigator.clipboard.writeText(t).then(()=> {
+      btnCopy.textContent = 'Copiado ✅';
+      setTimeout(()=> btnCopy.textContent = 'Copiar 📋', 1500);
     });
   }
 
-  // ---------- Copiar versículo
-  $('#copyVerseBtn')?.addEventListener('click', () => {
-    const txt = $('#verseText')?.textContent?.trim() || '';
-    if (!txt) return;
-    navigator.clipboard.writeText(txt).then(() => {
-      const btn = $('#copyVerseBtn');
-      const old = btn.textContent;
-      btn.textContent = 'Copiado!';
-      setTimeout(() => (btn.textContent = old), 1200);
-    });
+  /* ---------- Busca na Bíblia ---------- */
+  const form = byId('formBusca');
+  const q = byId('q');
+  const resBox = byId('resultado');
+
+  form.addEventListener('submit', async (ev)=>{
+    ev.preventDefault();
+    resBox.innerHTML = '<div class="loading">Procurando...</div>';
+
+    const refOrTerm = q.value.trim();
+    const ver = selVer.value;
+    if (!refOrTerm){ resBox.textContent = ''; return; }
+
+    // se parece referência (salmos 23:1, joao 3:16), manda pro content; senão, search
+    const isRef = /[\d:]/.test(refOrTerm) || /\b(gên|gen|êx|exo|salmos?|jo(á|a)o|mt|mc|lc|jo|atos|rom)/i.test(refOrTerm);
+
+    try{
+      if (isRef){
+        const r = await fetch(API.bibleContent(ver, refOrTerm), {cache:'no-store'});
+        if (!r.ok){ throw new Error('content '+r.status); }
+        const txt = await r.text();
+        resBox.textContent = normalizeBibleText(txt);
+      }else{
+        const r = await fetch(API.bibleSearch(ver, refOrTerm), {cache:'no-store'});
+        if (!r.ok){ throw new Error('search '+r.status); }
+        const data = await r.json();
+        if (!data.results || !data.results.length){
+          resBox.innerHTML = `<div class="muted">Nenhum resultado agora. Tente outra referência.</div>`;
+          return;
+        }
+        // mostra os 3 primeiros
+        const out = data.results.slice(0,3).map(x=>{
+          const verseRef = `${x.title?.replace(/\s+/g,' ')} ${x.preview?.match(/\((.*?)\)/)?.[1]??''}`.trim();
+          return `• ${x.preview?.replace(/<[^>]+>/g,'').trim()}\n  — ${verseRef}`;
+        }).join('\n\n');
+        resBox.textContent = out;
+      }
+    }catch(e){
+      console.error(e);
+      resBox.innerHTML = `<div class="muted">Erro na consulta. Tente outra palavra ou referência (ex.: João 3:16).</div>`;
+    }
   });
 
-  // ---------- Versículo do dia (worker -> /api/verse-of-day?ver=POR-NVI)
-  async function loadVerseOfDay() {
-    const ver = verSel?.value || defaultVerCode;
-    const url = `${proxyBase}/api/verse-of-day?ver=${encodeURIComponent(ver)}`;
-    try {
-      const r = await fetch(url);
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      const { ref } = await r.json();             // ex.: "João 3:16"
-      $('#verseText').textContent = ref || '—';
-    } catch (e) {
-      console.warn('Falha versículo do dia', e);
-      $('#verseText').textContent = 'Não foi possível carregar agora.';
+  function normalizeBibleText(t){
+    // remove cabeçalhos do biblia.com quando vem .txt
+    return t.replace(/\r/g,'').replace(/\n{3,}/g,'\n\n').trim();
+  }
+
+  /* ---------- YouTube ---------- */
+  const channelId = cfg.youtube.channelId;
+  const shortsPlaylist = cfg.youtube.shortsPlaylist;
+  const fullPlaylist = cfg.youtube.fullPlaylist;
+
+  const livePlayer = byId('livePlayer');
+  const railShorts = byId('shorts');
+  const railFull = byId('full');
+
+  // Live (tenta pegar live, senão último upload)
+  async function loadLive(){
+    try{
+      const r = await fetch(API.ytLive(channelId), {cache:'no-store'});
+      const data = await r.json(); // {live: true/false, id: "VIDEOID"} ou {id: ultimo}
+      const vid = data?.id;
+      if (!vid){ livePlayer.innerHTML = `<div class="muted">Não encontrado.</div>`; return; }
+      livePlayer.innerHTML = `<iframe src="https://www.youtube.com/embed/${vid}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>`;
+    }catch(e){
+      console.error(e);
+      livePlayer.innerHTML = `<div class="muted">Falha ao carregar o player.</div>`;
     }
   }
 
-  // ---------- Busca na Bíblia (worker -> /biblia/bible/content/{ver}.txt?passage=...)
-  function parseRef(raw) {
-    if (!raw || !raw.trim()) return null;
-    return raw.trim().replace(/\s+/g, ' ');
+  // Carrossel helper
+  function mountRail(el, items){
+    el.innerHTML = items.map(v=>{
+      const thumb = `https://i.ytimg.com/vi/${v.id}/hqdefault.jpg`;
+      const t = (v.title||'').replace(/&amp;/g,'&');
+      return `
+        <a class="cardThumb" href="https://www.youtube.com/watch?v=${v.id}" target="_blank" rel="noopener">
+          <img src="${thumb}" alt="">
+          <div class="meta">${escapeHtml(t)}</div>
+        </a>`;
+    }).join('');
   }
+  function escapeHtml(s){ return s?.replace(/[<>&]/g, m=>({ '<':'&lt;','>':'&gt;','&':'&amp;'}[m]))??'' }
 
-  async function doSearch() {
-    const input = $('#bibleQuery');
-    const out = $('#bibleResult');
-    out.textContent = '';
-    const ref = parseRef(input?.value || '');
-    if (!ref) {
-      out.textContent = 'Informe uma referência (ex.: João 3:16 ou Salmos 23).';
-      return;
-    }
-    const ver = verSel?.value || defaultVerCode;
-    const url = `${proxyBase}/biblia/bible/content/${encodeURIComponent(ver)}.txt?passage=${encodeURIComponent(ref)}`;
-    try {
-      const r = await fetch(url, { headers: { 'Accept': 'text/plain' } });
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      const txt = (await r.text() || '').trim();
-      out.textContent = txt || 'Nenhum resultado agora. Tente outra referência.';
-    } catch (e) {
-      console.warn('Falha na busca', e);
-      out.textContent = 'Nenhum resultado agora. Tente outra referência.';
-    }
-  }
-
-  $('#searchBtn')?.addEventListener('click', doSearch);
-  $('#bibleQuery')?.addEventListener('keydown', e => (e.key === 'Enter') && doSearch());
-
-  // ---------- YouTube
-  const YT = CFG.youtube || {};
-  const channelId = YT.channelId || '';
-  const uploadsId = channelId ? ('UU' + channelId.slice(2)) : ''; // regra do YouTube
-
-  async function fetchFeed(kind, id) {
-    // worker tem:
-    //  - /api/youtube?uploads={UU...}
-    //  - /api/youtube?playlist={PL...}
-    const p = new URLSearchParams();
-    p.set(kind, id);
-    const url = `${proxyBase}/api/youtube?${p.toString()}`;
-    const r = await fetch(url);
-    if (!r.ok) throw new Error(`yt ${kind} ${r.status}`);
-    return r.json(); // [{id,title,thumb,published,seconds,isShort}]
-  }
-
-  // último vídeo/live (se não live, pega o mais recente)
-  async function renderLive() {
-    if (!uploadsId) return;
-    try {
-      const items = await fetchFeed('uploads', uploadsId);
-      const first = items[0];
-      if (!first) return;
-      $('#liveFrame').src = `https://www.youtube.com/embed/${first.id}?rel=0`;
-    } catch (e) {
-      console.warn('YT live/latest', e);
-    }
-  }
-
-  function makeRail(container, items) {
-    container.innerHTML = '';
-    items.forEach(v => {
-      const card = document.createElement('a');
-      card.className = 'yt-card';
-      card.href = `https://www.youtube.com/watch?v=${v.id}`;
-      card.target = '_blank';
-      card.rel = 'noopener';
-      card.innerHTML = `
-        <div class="thumb" style="background-image:url('${v.thumb}')"></div>
-        <div class="yt-title" title="${v.title.replace(/"/g,'&quot;')}">${v.title}</div>
-      `;
-      container.appendChild(card);
-    });
-  }
-
-  async function renderShorts() {
-    const rail = $('#shortsRail');
-    if (!uploadsId || !rail) return;
-    try {
+  async function loadRails(){
+    // Shorts
+    try{
       let items;
-      if (YT.shortsPlaylist && YT.shortsPlaylist.startsWith('PL')) {
-        items = await fetchFeed('playlist', YT.shortsPlaylist);
-      } else {
-        items = await fetchFeed('uploads', uploadsId);
-        items = items.filter(v => v.isShort || v.seconds <= 61);
+      if (shortsPlaylist){
+        const rs = await fetch(API.ytPlaylist(shortsPlaylist));
+        items = (await rs.json()).items || [];
+      }else{
+        const ru = await fetch(API.ytUploads(channelId));
+        const up = await ru.json();
+        // considera shorts se duração <= 61s (quando o feed traz duração)
+        items = (up.items||[]).filter(x => (x.duration||0) <= 61);
       }
-      makeRail(rail, items.slice(0, 12));
-    } catch (e) {
-      console.warn('YT shorts', e);
-    }
-  }
+      mountRail(railShorts, items.slice(0,12));
+    }catch(e){ console.warn('shorts',e); }
 
-  async function renderFull() {
-    const rail = $('#fullRail');
-    if (!uploadsId || !rail) return;
-    try {
+    // Completos
+    try{
       let items;
-      if (YT.fullPlaylist && YT.fullPlaylist.startsWith('PL')) {
-        items = await fetchFeed('playlist', YT.fullPlaylist);
-      } else {
-        items = await fetchFeed('uploads', uploadsId);
-        items = items.filter(v => !v.isShort && v.seconds >= 1200); // >= 20 min = "completo"
+      if (fullPlaylist){
+        const rp = await fetch(API.ytPlaylist(fullPlaylist));
+        items = (await rp.json()).items || [];
+      }else{
+        const ru = await fetch(API.ytUploads(channelId));
+        const up = await ru.json();
+        items = (up.items||[]).filter(x => (x.duration||999) > 61);
       }
-      makeRail(rail, items.slice(0, 12));
-    } catch (e) {
-      console.warn('YT full', e);
-    }
+      mountRail(railFull, items.slice(0,12));
+    }catch(e){ console.warn('full',e); }
   }
 
-  // dispara
-  await loadVerseOfDay();
-  await renderLive();
-  await renderShorts();
-  await renderFull();
+  loadLive();
+  loadRails();
 })();
