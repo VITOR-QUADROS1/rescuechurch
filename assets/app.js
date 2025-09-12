@@ -1,202 +1,166 @@
-// assets/app.js — robusto: tenta /config.json, depois /assets/config.json, depois fallback
+// app.js — front com auto-tradução para PT
+(async () => {
+  const $ = (s, el = document) => el.querySelector(s);
+  const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 
-const $ = (sel) => document.querySelector(sel);
+  // ---- Carrega config ----
+  const cfg = await fetch('assets/config.json').then(r => r.json());
 
-// Fallback padrão (caso config.json não carregue em nenhum lugar)
-const DEFAULT_CONFIG = {
-  proxy: { workerBase: "https://rescue-proxy.vitorpaulojquadros.workers.dev" },
-  biblia: {
-    defaultVersion: "LEB",
-    versions: { "LEB (en)": "LEB", "ESV (en)": "ESV" }
-  },
-  youtube: { channelId: "", shortsPlaylist: "", fullPlaylist: "" }
-};
+  const WORKER = cfg.proxy.workerBase.replace(/\/+$/, '');
+  const VER_DEFAULT = cfg.biblia?.defaultVersion || 'LEB';
 
-async function tryFetch(url) {
-  try {
-    const r = await fetch(url, { cache: "no-store" });
-    if (!r.ok) throw new Error(`${url} -> ${r.status}`);
-    return await r.json();
-  } catch (e) {
-    console.warn("[config] falhou:", url, e);
-    return null;
-  }
-}
+  // ---- UI refs ----
+  const elVText = $('#vday-text');
+  const elVRef  = $('#vday-ref');
+  const elCopy  = $('#btn-copy');
+  const elQ     = $('#biblia-q');
+  const elVer   = $('#biblia-ver');
+  const elBtn   = $('#btn-buscar');
+  const elOut   = $('#biblia-out');
+  $('#yy').textContent = new Date().getFullYear();
 
-async function loadConfig() {
-  if (window.APP_CONFIG) return window.APP_CONFIG;
-
-  // 1) raiz
-  let cfg = await tryFetch("/config.json");
-  if (cfg) return cfg;
-
-  // 2) assets
-  cfg = await tryFetch("/assets/config.json");
-  if (cfg) return cfg;
-
-  console.warn("[config] usando DEFAULT_CONFIG");
-  return DEFAULT_CONFIG;
-}
-
-async function boot() {
-  const cfg = await loadConfig();
-
-  // rodapé
-  const y = $("#yy");
-  if (y) y.textContent = new Date().getFullYear();
-
-  // montar versões no select
-  const selVer = $("#biblia-ver");
-  if (selVer && cfg.biblia?.versions) {
-    selVer.innerHTML = "";
-    Object.entries(cfg.biblia.versions).forEach(([label, code]) => {
-      const opt = document.createElement("option");
-      opt.value = code;
+  // ---- Preenche versões (apenas visual; o worker ignora) ----
+  if (cfg.biblia?.versions) {
+    elVer.innerHTML = '';
+    for (const [label, val] of Object.entries(cfg.biblia.versions)) {
+      const opt = document.createElement('option');
+      opt.value = val;
       opt.textContent = label;
-      selVer.appendChild(opt);
-    });
-    selVer.value = cfg.biblia?.defaultVersion || Object.values(cfg.biblia.versions)[0];
-  }
-
-  // ---- Versículo do dia ----
-  async function carregarVersiculoDoDia() {
-    const alvo = $("#vday-text");
-    const alvoRef = $("#vday-ref");
-    const ver = (cfg.biblia?.defaultVersion || "LEB").trim();
-    try {
-      const u = `${cfg.proxy.workerBase}/api/verse-of-day?ver=${encodeURIComponent(ver)}`;
-      const r = await fetch(u, { headers: { Accept: "application/json" } });
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      const j = await r.json();
-      alvo.textContent = (j.text || "").trim() || "—";
-      alvoRef.textContent = j.ref ? `(${j.ref} — ${j.version})` : `(${j.version || ver})`;
-    } catch (e) {
-      console.error("[vdia] erro:", e);
-      alvo.textContent = "—";
-      alvoRef.textContent = "(erro ao carregar)";
+      if (val === VER_DEFAULT) opt.selected = true;
+      elVer.appendChild(opt);
     }
   }
 
-  // ---- Busca na Bíblia ----
-  async function fazerBuscaBiblia() {
-    const q = $("#biblia-q").value.trim();
-    const ver = ($("#biblia-ver")?.value || cfg.biblia?.defaultVersion || "LEB").trim();
-    const outEl = $("#biblia-out"); // textarea
-    outEl.value = "";
+  // ---------------- Tradução (cliente) ----------------
+  const trCfg = cfg.translate || {};
+  const shouldAutoTranslate = !!trCfg.auto;
 
-    if (!q) {
-      outEl.value = "Digite uma referência ou termo.";
-      return;
-    }
-
-    try {
-      const u = `${cfg.proxy.workerBase}/biblia/bible/content/${encodeURIComponent(
-        ver
-      )}.txt?passage=${encodeURIComponent(q)}&style=oneVerse`;
-      const r = await fetch(u, { headers: { Accept: "text/plain" } });
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      const txt = await r.text();
-      outEl.value = txt || "Nenhum resultado encontrado.";
-    } catch (e) {
-      console.error("[busca] erro:", e);
-      outEl.value = "Erro ao buscar na API da Bíblia.";
-    }
+  // heurística simples de “parece inglês?”
+  function looksEnglish(txt) {
+    if (!txt) return false;
+    const sample = txt.toLowerCase();
+    const hits = (sample.match(/\b(the|and|you|he|she|shall|lord|god|for|with|of|in)\b/g) || []).length;
+    const hasDiacritics = /[áéíóúâêôãõç]/i.test(sample);
+    return hits >= 2 && !hasDiacritics; // palpite forte de EN
   }
 
-  // ---- YouTube (opcional) ----
-  async function carregarYouTube() {
-    const LIVE_IFRAME = $("#liveFrame");
-    if (!cfg.youtube) return;
+  async function translateToPT(text) {
+    if (!text || !shouldAutoTranslate) return text;
 
+    if (trCfg.provider === 'deepl' && trCfg.deepl?.apiKey) {
+      try {
+        const r = await fetch('https://api-free.deepl.com/v2/translate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Authorization': `DeepL-Auth-Key ${trCfg.deepl.apiKey}`
+          },
+          body: new URLSearchParams({ text, target_lang: 'PT-BR' })
+        });
+        if (r.ok) {
+          const j = await r.json();
+          const out = j?.translations?.[0]?.text;
+          if (out) return out;
+        }
+      } catch {}
+    }
+
+    // LibreTranslate (default)
+    const base = trCfg.libre?.base || 'https://libretranslate.com';
     try {
-      if (cfg.youtube.channelId && LIVE_IFRAME) {
-        const liveURL = `${cfg.proxy.workerBase}/api/youtube/live?channel=${encodeURIComponent(
-          cfg.youtube.channelId
-        )}`;
-        const r = await fetch(liveURL);
+      const r = await fetch(`${base}/translate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          q: text, source: 'en', target: 'pt', format: 'text',
+          api_key: trCfg.libre?.apiKey || undefined
+        })
+      });
+      if (r.ok) {
         const j = await r.json();
-        let videoId = j.isLive ? j.id : null;
-        if (!videoId) {
-          const url = `${cfg.proxy.workerBase}/api/youtube?channel=${encodeURIComponent(
-            cfg.youtube.channelId
-          )}`;
-          const r2 = await fetch(url);
-          const d = await r2.json();
-          videoId = d.items?.[0]?.id || null;
-        }
-        if (videoId) LIVE_IFRAME.src = `https://www.youtube.com/embed/${videoId}`;
+        const out = j?.translatedText || j?.translation;
+        if (out) return out;
+      }
+    } catch {}
+
+    return text; // fallback: devolve original
+  }
+
+  // normaliza \r\n
+  const tidy = (t) => (t || '').replace(/\r\n/g, '\n').trim();
+
+  // ---------------- Versículo do dia ----------------
+  async function loadVerseOfDay() {
+    try {
+      const r = await fetch(`${WORKER}/api/verse-of-day`);
+      const j = await r.json(); // {ref, version, text}
+      let { ref, version, text } = j;
+
+      text = tidy(text);
+
+      // se texto veio vazio, mostra erro discreto
+      if (!text) {
+        elVText.textContent = '(erro ao carregar)';
+        elVRef.textContent = '';
+        return;
       }
 
-      // shorts
-      if (cfg.youtube.shortsPlaylist) {
-        const url = `${cfg.proxy.workerBase}/api/youtube?playlist=${encodeURIComponent(
-          cfg.youtube.shortsPlaylist
-        )}`;
-        const r = await fetch(url);
-        const d = await r.json();
-        const el = document.querySelector("#shorts");
-        if (el) {
-          el.innerHTML = (d.items || [])
-            .map(
-              (v) => `
-              <a class="thumb" href="https://youtu.be/${v.id}" target="_blank" rel="noopener">
-                <img src="${v.thumb}" alt="${v.title}">
-                <span>${v.title}</span>
-              </a>`
-            )
-            .join("");
+      // traduz se parecer inglês (fallback LEB)
+      if (looksEnglish(text)) {
+        const tpt = await translateToPT(text);
+        if (tpt && tpt !== text) {
+          text = tpt;
+          version = 'LEB → pt (auto)';
         }
       }
 
-      // fulls
-      if (cfg.youtube.fullPlaylist) {
-        const url = `${cfg.proxy.workerBase}/api/youtube?playlist=${encodeURIComponent(
-          cfg.youtube.fullPlaylist
-        )}`;
-        const r = await fetch(url);
-        const d = await r.json();
-        const el = document.querySelector("#fulls");
-        if (el) {
-          el.innerHTML = (d.items || [])
-            .map(
-              (v) => `
-              <a class="thumb" href="https://youtu.be/${v.id}" target="_blank" rel="noopener">
-                <img src="${v.thumb}" alt="${v.title}">
-                <span>${v.title}</span>
-              </a>`
-            )
-            .join("");
-        }
-      }
-    } catch (e) {
-      console.warn("[youtube] erro:", e);
+      elVText.textContent = text;
+      elVRef.textContent = ref ? `(${ref} — ${version || 'NVI'})` : '';
+    } catch {
+      elVText.textContent = '(erro ao carregar)';
+      elVRef.textContent = '';
     }
   }
 
-  // Bindings
-  $("#btn-copy")?.addEventListener("click", () => {
-    const texto = $("#vday-text")?.textContent?.trim() || "";
-    const ref = $("#vday-ref")?.textContent?.trim() || "";
-    navigator.clipboard.writeText([texto, ref].filter(Boolean).join(" ")).catch(() => {});
-  });
+  // ---------------- Busca ----------------
+  async function doSearch() {
+    const q = elQ.value.trim();
+    if (!q) return;
 
-  $("#btn-buscar")?.addEventListener("click", (e) => {
-    e.preventDefault();
-    fazerBuscaBiblia();
-  });
+    elOut.value = 'Carregando...';
 
-  $("#biblia-q")?.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      fazerBuscaBiblia();
+    try {
+      // o worker aceita QUALQUER /{versao}.txt (ele ignora e usa NVI)
+      const ver = elVer.value || VER_DEFAULT;
+      const url = `${WORKER}/biblia/bible/content/${encodeURIComponent(ver)}.txt?passage=${encodeURIComponent(q)}`;
+
+      const res = await fetch(url);
+      let txt = tidy(await res.text());
+
+      // traduz se parecer inglês
+      if (looksEnglish(txt)) {
+        const tpt = await translateToPT(txt);
+        if (tpt && tpt !== txt) txt = tpt;
+      }
+
+      elOut.value = txt || 'Nenhum resultado encontrado.';
+    } catch {
+      elOut.value = 'Erro ao buscar na API da Bíblia.';
     }
+  }
+
+  // eventos
+  elBtn.addEventListener('click', doSearch);
+  elQ.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') doSearch();
+  });
+  elCopy?.addEventListener('click', async () => {
+    const t = `${elVText.textContent}\n\n${elVRef.textContent}`;
+    try { await navigator.clipboard.writeText(t.trim()); elCopy.textContent = 'Copiado! ✅'; }
+    catch { elCopy.textContent = 'Copiar ❌'; }
+    setTimeout(() => (elCopy.textContent = 'Copiar 📋'), 1500);
   });
 
-  // Start
-  await carregarVersiculoDoDia();
-  await carregarYouTube();
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-  boot().catch((e) => console.error("[boot] erro fatal:", e));
-});
+  // inicializa
+  loadVerseOfDay();
+})();
