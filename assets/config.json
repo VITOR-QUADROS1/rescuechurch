@@ -1,11 +1,11 @@
 {
-  "proxy": {
-    "workerBase": "https://rescue-proxy.vitorpaulojquadros.workers.dev"
-  },
+  "proxy": { "workerBase": "https://rescue-proxy.vitorpaulojquadros.workers.dev" },
   "biblia": {
-    "defaultVersion": "LEB",
+    "defaultVersion": "POR-NTLH",
     "versions": {
-      "LEB (en)": "LEB"
+      "NTLH (pt-BR)": "POR-NTLH",
+      "ARA (pt-BR)": "POR-ARA",
+      "NVI (pt-BR)": "POR-NVI"
     }
   },
   "youtube": {
