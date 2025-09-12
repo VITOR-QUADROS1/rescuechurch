@@ -7,13 +7,7 @@
     "versions": {
       "LEB (en)": "LEB",
       "ESV (en)": "ESV"
-      /*
-      Quando tiver PT-BR liberado, substitua/adicione:
-      "NTLH (pt-BR)": "POR-NTLH",
-      "ARA (pt-BR)": "POR-ARA",
-      "NVI (pt-BR)": "POR-NVI"
-      */
-    }
+     }
   },
   "youtube": {
     "channelId": "UCG8f_n51Hovh92A6_a-tFGA",
