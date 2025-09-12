@@ -6,25 +6,15 @@
     "defaultVersion": "LEB",
     "versions": {
       "LEB (en)": "LEB",
-      "NTLH (pt-BR)": "NTLH",
-      "ARA (pt-BR)": "ARA",
-      "NVI (pt-BR)": "NVI"
+      "ESV (en)": "ESV"
+      "NTLH (pt-BR)": "POR-NTLH",
+      "ARA (pt-BR)": "POR-ARA",
+      "NVI (pt-BR)": "POR-NVI"
     }
   },
   "youtube": {
-    "channelId": "UCG8f_n51Hovh92A6_a-tFGA",
-    "shortsPlaylist": "UUSHG8f_n51Hovh92A6_a-tFGA",
-    "fullPlaylist": "UUG8f_n51Hovh92A6_a-tFGA"
-  },
-  "translate": {
-    "auto": true,                     // traduz automaticamente se parecer inglês
-    "provider": "libre",              // "libre" (padrão) ou "deepl"
-    "libre": {
-      "base": "https://libretranslate.com",
-      "apiKey": ""                    // deixe vazio; preencha se seu servidor exigir
-    },
-    "deepl": {
-      "apiKey": ""                    // se usar o DeepL, coloque aqui e mude provider para "deepl"
-    }
+    "channelId": "UC11Km85MPiYbuPmG7Lz2Wjg",
+    "shortsPlaylist": "UUSH11Km85MPiYbuPmG7Lz2Wjg",
+    "fullPlaylist": "UU11Km85MPiYbuPmG7Lz2Wjg"
   }
 }
