@@ -17,14 +17,14 @@
     "fullPlaylist": "UUG8f_n51Hovh92A6_a-tFGA"
   },
   "translate": {
-    "auto": true,                     // traduz automaticamente quando detectar EN
-    "provider": "libre",              // "libre" ou "deepl"
+    "auto": true,                     
+    "provider": "libre",              
     "libre": {
       "base": "https://libretranslate.com",
-      "apiKey": ""                    // se o servidor exigir
+      "apiKey": ""                    
     },
     "deepl": {
-      "apiKey": ""                    // se preferir DeepL, coloque aqui e mude provider p/ "deepl"
+      "apiKey": ""                    
     }
   }
 }
