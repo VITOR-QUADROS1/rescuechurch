@@ -1,12 +1,8 @@
 {
-  "proxy": {
-    "workerBase": "https://rescue-proxy.vitorpaulojquadros.workers.dev"
-  },
+  "proxy": { "workerBase": "https://rescue-proxy.vitorpaulojquadros.workers.dev" },
   "biblia": {
-    "defaultVersion": "LEB",
+    "defaultVersion": "POR-NTLH",
     "versions": {
-      "LEB (en)": "LEB",
-      "ESV (en)": "ESV"
       "NTLH (pt-BR)": "POR-NTLH",
       "ARA (pt-BR)": "POR-ARA",
       "NVI (pt-BR)": "POR-NVI"
@@ -14,7 +10,7 @@
   },
   "youtube": {
     "channelId": "UCG8f_n51Hovh92A6_a-tFGA",
-    "shortsPlaylist": "",
-    "fullPlaylist": ""
+    "shortsPlaylist": "UUSHG8f_n51Hovh92A6_a-tFGA",
+    "fullPlaylist": "UUG8f_n51Hovh92A6_a-tFGA"
   }
 }
