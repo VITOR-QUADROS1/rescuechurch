@@ -1,16 +1,30 @@
 {
-  "proxy": { "workerBase": "https://rescue-proxy.vitorpaulojquadros.workers.dev" },
+  "proxy": {
+    "workerBase": "https://rescue-proxy.vitorpaulojquadros.workers.dev"
+  },
   "biblia": {
-    "defaultVersion": "POR-NTLH",
+    "defaultVersion": "LEB",
     "versions": {
-      "NTLH (pt-BR)": "POR-NTLH",
-      "ARA (pt-BR)": "POR-ARA",
-      "NVI (pt-BR)": "POR-NVI"
+      "LEB (en)": "LEB",
+      "NTLH (pt-BR)": "NTLH",
+      "ARA (pt-BR)": "ARA",
+      "NVI (pt-BR)": "NVI"
     }
   },
   "youtube": {
     "channelId": "UCG8f_n51Hovh92A6_a-tFGA",
     "shortsPlaylist": "UUSHG8f_n51Hovh92A6_a-tFGA",
     "fullPlaylist": "UUG8f_n51Hovh92A6_a-tFGA"
+  },
+  "translate": {
+    "auto": true,                     // traduz automaticamente quando detectar EN
+    "provider": "libre",              // "libre" ou "deepl"
+    "libre": {
+      "base": "https://libretranslate.com",
+      "apiKey": ""                    // se o servidor exigir
+    },
+    "deepl": {
+      "apiKey": ""                    // se preferir DeepL, coloque aqui e mude provider p/ "deepl"
+    }
   }
 }
