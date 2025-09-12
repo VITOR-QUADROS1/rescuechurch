@@ -5,16 +5,12 @@
   "biblia": {
     "defaultVersion": "LEB",
     "versions": {
-      "LEB (en)": "LEB",
-      "ESV (en)": "ESV",
-      "NTLH (pt-BR)": "POR-NTLH",
-      "ARA (pt-BR)": "POR-ARA",
-      "NVI (pt-BR)": "POR-NVI"
+      "LEB (en)": "LEB"
     }
   },
   "youtube": {
     "channelId": "UCG8f_n51Hovh92A6_a-tFGA",
-    "shortsPlaylist": "",
-    "fullPlaylist": ""
+    "shortsPlaylist": "UUSHG8f_n51Hovh92A6_a-tFGA",
+    "fullPlaylist": "UUG8f_n51Hovh92A6_a-tFGA"
   }
 }
