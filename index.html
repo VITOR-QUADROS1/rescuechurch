@@ -33,22 +33,22 @@
     <section id="vdia" class="card section">
       <div class="section-head">
         <h2>Versículo do dia</h2>
-        <button id="btnCopy" class="btn pill">Copiar 📋</button>
+        <button id="btn-copy" class="btn pill">Copiar 📋</button>
       </div>
-      <p id="vday" class="verse">Carregando...</p>
-      <p id="vdayRef" class="muted"></p>
+      <p id="vday-text" class="verse">Carregando...</p>
+      <p id="vday-ref" class="muted"></p>
     </section>
 
-    <!-- BUSCA -->
+    <!-- BUSCA NA BÍBLIA -->
     <section id="buscar" class="card section">
       <h2>Buscar na Bíblia</h2>
       <div class="search-row">
-        <input id="q" class="input" placeholder="Ex.: João 3:16 ou 'amor fé esperança'">
-        <select id="ver" class="select"></select>
-        <button id="btnSearch" class="btn">Procurar</button>
+        <input id="biblia-q" class="input" placeholder="Ex.: João 3:16 ou 'amor fé esperança'">
+        <select id="biblia-ver" class="select"></select>
+        <button id="btn-buscar" class="btn">Procurar</button>
       </div>
       <p class="hint">Dica: referências aceitam variações (“Joao 3:16”, “Salmos 23”).</p>
-      <div id="result" class="result"></div>
+      <textarea id="biblia-out" class="result" readonly></textarea>
     </section>
 
     <!-- VÍDEOS & LIVES -->
