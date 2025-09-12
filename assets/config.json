@@ -19,10 +19,7 @@
       "base": "https://libretranslate.com",
       "apiKey": ""
     }
-    /* Se for usar DeepL no cliente:
-    ,"provider": "deepl",
-    "deepl": { "apiKey": "SUA_CHAVE" }
-    */
+   
   },
   "youtube": {
     "channelId": "UC11Km85MPiYbuPmG7Lz2Wjg",
