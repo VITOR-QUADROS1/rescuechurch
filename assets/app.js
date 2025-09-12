@@ -13,7 +13,11 @@ const $ = (sel) => document.querySelector(sel);
 async function boot() {
   const cfg = await loadConfig();
 
-  // Monta seletor de versões (se existir)
+  // Ano no rodapé (se existir)
+  const y = document.querySelector("#yy");
+  if (y) y.textContent = new Date().getFullYear();
+
+  // Monta seletor de versões (se existir no config)
   const selVer = $("#biblia-ver");
   if (selVer && cfg.biblia?.versions) {
     selVer.innerHTML = "";
@@ -44,7 +48,7 @@ async function boot() {
     }
   }
 
-  // Busca
+  // Busca na Bíblia
   async function fazerBuscaBiblia() {
     const q = $("#biblia-q").value.trim();
     const ver = ($("#biblia-ver")?.value || cfg.biblia?.defaultVersion || "LEB").trim();
@@ -69,6 +73,79 @@ async function boot() {
     }
   }
 
+  // YouTube (opcional – popular listas se tiver channel/playlist no config)
+  async function carregarYouTube() {
+    if (!cfg.youtube) return;
+
+    const LIVE_URL = `${cfg.proxy.workerBase}/api/youtube/live?channel=${encodeURIComponent(
+      cfg.youtube.channelId || ""
+    )}`;
+    const LIVE_IFRAME = $("#liveFrame");
+
+    try {
+      if (cfg.youtube.channelId && LIVE_IFRAME) {
+        const res = await fetch(LIVE_URL);
+        const j = await res.json();
+        const videoId = j.isLive ? j.id : null;
+
+        if (videoId) {
+          LIVE_IFRAME.src = `https://www.youtube.com/embed/${videoId}?autoplay=0`;
+        } else {
+          // pega o último vídeo do canal
+          const url = `${cfg.proxy.workerBase}/api/youtube?channel=${encodeURIComponent(
+            cfg.youtube.channelId
+          )}`;
+          const r = await fetch(url);
+          const d = await r.json();
+          const first = d.items?.[0]?.id;
+          if (first) LIVE_IFRAME.src = `https://www.youtube.com/embed/${first}`;
+        }
+      }
+
+      // Shorts
+      if (cfg.youtube.shortsPlaylist) {
+        const url = `${cfg.proxy.workerBase}/api/youtube?playlist=${encodeURIComponent(
+          cfg.youtube.shortsPlaylist
+        )}`;
+        const r = await fetch(url);
+        const d = await r.json();
+        const el = document.querySelector("#shorts");
+        if (el) {
+          el.innerHTML = (d.items || [])
+            .map(
+              (v) => `
+              <a class="thumb" href="https://youtu.be/${v.id}" target="_blank" rel="noopener">
+                <img src="${v.thumb}" alt="${v.title}">
+                <span>${v.title}</span>
+              </a>`
+            )
+            .join("");
+        }
+      }
+
+      // Mensagens completas
+      if (cfg.youtube.fullPlaylist) {
+        const url = `${cfg.proxy.workerBase}/api/youtube?playlist=${encodeURIComponent(
+          cfg.youtube.fullPlaylist
+        )}`;
+        const r = await fetch(url);
+        const d = await r.json();
+        const el = document.querySelector("#fulls");
+        if (el) {
+          el.innerHTML = (d.items || [])
+            .map(
+              (v) => `
+              <a class="thumb" href="https://youtu.be/${v.id}" target="_blank" rel="noopener">
+                <img src="${v.thumb}" alt="${v.title}">
+                <span>${v.title}</span>
+              </a>`
+            )
+            .join("");
+        }
+      }
+    } catch (_) {}
+  }
+
   // Bindings
   $("#btn-copy")?.addEventListener("click", () => {
     const texto = $("#vday-text")?.textContent?.trim() || "";
@@ -90,6 +167,7 @@ async function boot() {
 
   // Inicialização
   await carregarVersiculoDoDia();
+  await carregarYouTube();
 }
 
 // Inicia
