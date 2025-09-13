@@ -53,7 +53,7 @@ h2{margin:0 0 10px 0}
   padding:12px 14px; border-radius:10px; outline:none; width:100%;
 }
 .input:focus,.select:focus{box-shadow:0 0 0 6px var(--ring); border-color:var(--accent)}
-.search-row{display:grid; grid-template-columns: 1fr 220px 150px; gap:12px; margin:6px 0 10px}
+.search-row{display:grid; grid-template-columns: 1fr 200px 140px; gap:12px; margin:6px 0 10px}
 .btn{
   background: linear-gradient(135deg, var(--accent), var(--accent2));
   color:white; border:none; padding:12px 16px; border-radius:12px; cursor:pointer; font-weight:600
@@ -63,24 +63,11 @@ h2{margin:0 0 10px 0}
 .hint,.muted{color:var(--muted)}
 .verse{font-size:1.15rem}
 
-/* Result box (textarea) */
+/* Result box */
 .result{
-  display:block;
-  width:100%;
-  min-height:220px;   /* <<< maior e confortável */
-  height:220px;
-  padding:14px 16px;
-  border-radius:12px;
-  border:1px dashed rgba(255,255,255,.12);
-  background:rgba(255,255,255,.02);
-  color:var(--text);
-  line-height:1.5;
-  font-size:.95rem;
-  resize:vertical;          /* permite o usuário aumentar se quiser */
-  white-space:pre-wrap;     /* preserva quebras de linha */
-  overflow:auto;
+  min-height:54px; padding:14px; border-radius:12px; border:1px dashed rgba(255,255,255,.12);
+  background:rgba(255,255,255,.02)
 }
-.result:focus{outline:none; box-shadow:0 0 0 6px var(--ring); border-color:var(--accent)}
 
 /* Vídeos layout */
 .video-grid{display:grid; gap:18px}
@@ -102,25 +89,36 @@ h2{margin:0 0 10px 0}
 /* Footer */
 .footer{padding:30px 0 50px; text-align:center; color:var(--muted)}
 
+
 /* ================================== */
-/* Responsivo */
+/* MELHORIAS PARA TELAS MENORES (RESPONSIVO) */
 /* ================================== */
 
-/* Tablets landscape */
+/* Para telas até 900px (Tablets em modo paisagem) */
 @media (max-width:900px){
-  .search-row{grid-template-columns:1fr 180px 130px}
+  .search-row{grid-template-columns:1fr 160px 120px}
   .hitem{min-width:260px}
 }
 
-/* Celulares / tablets portrait */
+/* Para telas até 700px (Celulares e tablets em modo retrato) */
 @media (max-width:700px){
-  .container{padding:16px;}
-  .topbar{flex-wrap:wrap; gap:10px;}
+  /* Ajusta o espaçamento geral da página */
+  .container{padding: 16px;}
+
+  /* Faz o menu quebrar a linha em vez de estourar a tela */
+  .topbar{flex-wrap: wrap; gap: 10px;}
+  
+  /* Deixa a linha de busca com 1 coluna só */
   .search-row{grid-template-columns:1fr}
   .select{width:100%}
-  h2{font-size:1.4rem;}
-  .verse{font-size:1.05rem;}
+
+  /* Diminui um pouco as fontes para caber melhor */
+  h2 {font-size: 1.4rem;}
+  .verse{font-size: 1.05rem;}
+  
+  /* Ajusta a altura da imagem de topo */
   .hero{height:200px;}
+  
+  /* Ajusta a altura do player de vídeo ao vivo */
   .live-col .player{height:220px;}
-  .result{min-height:180px; height:180px;} /* um pouco menor no mobile */
 }
