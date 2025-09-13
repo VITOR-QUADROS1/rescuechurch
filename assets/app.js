@@ -22,23 +22,17 @@ async function loadVDay(){
   t.textContent = "Carregando...";
   ref.textContent = ""; err.style.display="none";
 
-  try {
+  try{
     const r = await fetchWithTimeout("/api/verse-of-day", {}, 12000);
+    if (!r.ok) throw new Error(`API returned status ${r.status}`);
     const j = await r.json().catch(()=>({}));
-    let txt = j.text || "";
+    
+    if(!j.text){ throw new Error("Sem texto retornado"); }
 
-    // Se o texto estiver vazio, busca a versão PT diretamente (fallback)
-    if(!txt && j.ref){
-      const r2 = await fetchWithTimeout(`/biblia/bible/content/NVI.txt?passage=${encodeURIComponent(j.ref)}`, {}, 12000);
-      if(r2.ok) txt = await r2.text();
-    }
-
-    if(!txt){ throw new Error("Sem texto retornado"); }
-
-    // A tradução agora é responsabilidade do Worker, então apenas exibimos o resultado
-    t.textContent = txt;
+    // Apenas exibe, pois o Worker já garante o texto em português
+    t.textContent = j.text;
     ref.textContent = `(${j.ref || ""} — ${j.version || "NVI"})`;
-  } catch(e) {
+  }catch(e){
     t.textContent = "(erro ao carregar)";
     err.textContent = "Falha ao consultar /api/verse-of-day (verifique as rotas do Worker e o cache).";
     err.style.display = "block";
@@ -57,14 +51,14 @@ async function searchBible(){
 
     if(!r.ok || !txt) throw new Error("sem resultado");
     
-    // A tradução é responsabilidade do Worker, apenas exibimos
+    // Apenas exibe, pois o Worker já garante o texto em português
     out.value = txt;
   }catch(e){
     out.value = "Erro ao consultar a Bíblia. (Verifique se /biblia/* está roteado para o Worker).";
   }
 }
 
-/* -------------- YOUTUBE -------------- */
+/* -------------- YOUTUBE (Sem alterações) -------------- */
 function yt(id){ return `https://www.youtube.com/embed/${id}?autoplay=0&rel=0`; }
 
 async function loadLiveOrLatest(){
@@ -111,8 +105,9 @@ function boot(){
   });
 
   loadVDay();
-  loadLiveOrLatest();
-  if(CFG?.yt?.shortsPlaylistId) fillPlaylist(CFG.yt.shortsPlaylistId, "#shorts");
-  if(CFG?.yt?.fullPlaylistId)   fillPlaylist(CFG.yt.fullPlaylistId,   "#fulls");
+  // As funções do YouTube podem ser mantidas se você as usa
+  // loadLiveOrLatest();
+  // if(CFG?.yt?.shortsPlaylistId) fillPlaylist(CFG.yt.shortsPlaylistId, "#shorts");
+  // if(CFG?.yt?.fullPlaylistId)   fillPlaylist(CFG.yt.fullPlaylistId,   "#fulls");
 }
 document.addEventListener("DOMContentLoaded", boot);
