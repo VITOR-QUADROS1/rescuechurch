@@ -1,25 +1,13 @@
 {
   "proxy": {
-    "workerBase": "https://rescue-proxy.vitorpaulojquadros.workers.dev"
+    "workerBase": ""
   },
   "biblia": {
-    "defaultVersion": "POR-NVI",
+    "defaultVersion": "NVI",
     "versions": {
-      "LEB (en)": "LEB",
-      "ESV (en)": "ESV",
-      "NTLH (pt-BR)": "POR-NTLH",
-      "ARA (pt-BR)": "POR-ARA",
-      "NVI (pt-BR)": "POR-NVI"
+      "NVI (pt-BR)": "NVI",
+      "LEB (en)": "LEB"
     }
-  },
-  "translate": {
-    "auto": true,
-    "provider": "libre",
-    "libre": {
-      "base": "https://libretranslate.com",
-      "apiKey": ""
-    }
-   
   },
   "youtube": {
     "channelId": "UC11Km85MPiYbuPmG7Lz2Wjg",
