@@ -1,12 +1,12 @@
-/* assets/app.js — Rescue Church (v7 ✓)
+/* assets/app.js — Rescue Church (v7.1)
  * - Versículo do dia (PT garantido)
- * - Busca bíblica PT-first (traduz cliente se vier EN)
+ * - Busca bíblica PT-first (traduz no cliente se ainda vier EN)
  * - YouTube: live + últimos (fallback de UI)
- * Requer Worker versão "2025-09-13-hard-pt"
+ * Requer Worker versão "2025-09-13-hard-pt" (ou mais novo)
  */
+
 const $  = (q) => document.querySelector(q);
 const $$ = (q) => Array.from(document.querySelectorAll(q));
-
 const CFG = window.APP_CFG || { yt:{} };
 
 /* -------------------- Utils -------------------- */
@@ -24,7 +24,7 @@ async function fetchWithTimeout(url, opts={}, ms=12000, retries=1){
     const ctrl = new AbortController();
     const id   = setTimeout(()=>ctrl.abort(), ms);
     try{
-      const r = await fetch(url, {...opts, signal: ctrl.signal});
+      const r = await fetch(url, {...opts, signal: ctrl.signal, cache: "no-store"});
       clearTimeout(id);
       if (r.ok) return r;
       lastErr = new Error(`HTTP ${r.status}`);
@@ -36,9 +36,12 @@ async function fetchWithTimeout(url, opts={}, ms=12000, retries=1){
 async function translateToPT(text){
   if(!text) return text;
   try{
+    // 1ª tentativa (auto → pt-BR)
     let r = await fetchWithTimeout(`/api/translate?q=${encodeURIComponent(text)}&from=auto&to=pt-BR&t=${Date.now()}`, {}, 12000, 0);
     let j = await r.json().catch(()=>({}));
     let out = j?.text || text;
+
+    // 2ª (força en → pt-BR) se ainda parecer EN
     if(isEN(out)){
       r = await fetchWithTimeout(`/api/translate?q=${encodeURIComponent(text)}&from=en&to=pt-BR&t=${Date.now()}`, {}, 12000, 0);
       j = await r.json().catch(()=>({}));
@@ -57,19 +60,17 @@ async function loadVDay(){
 
   if (!txt || !ref) return;
 
-  err && (err.style.display = "none");
-  err && (err.textContent = "");
+  if(err){ err.style.display="none"; err.textContent=""; }
   txt.textContent = "Carregando…";
   ref.textContent = "";
 
   setLoading(btn, true);
   try{
-    const url = `/api/verse-of-day?lang=pt&force=fallback&t=${Date.now()}`;
-    const r   = await fetchWithTimeout(url, {}, 12000, 1);
+    // 'lang=pt' garante tradução no Worker; 't' evita cache
+    const r   = await fetchWithTimeout(`/api/verse-of-day?lang=pt&t=${Date.now()}`, {}, 12000, 1);
     const j   = await r.json();
-
-    let out = String(j?.text || "");
-    if(isEN(out)) out = await translateToPT(out);
+    let out   = String(j?.text || "");
+    if(isEN(out)) out = await translateToPT(out);  // reforço extra no cliente
 
     txt.textContent = out.trim() || "(sem texto)";
     ref.textContent = `${j?.ref || ""} — ${j?.version || "NVI"}`;
@@ -94,14 +95,12 @@ async function searchBible(){
   const q = (qEl.value || "").trim();
   if(!q){ qEl.focus(); return; }
 
-  err && (err.style.display="none");
-  err && (err.textContent="");
-
+  if(err){ err.style.display="none"; err.textContent=""; }
   out.value = "Buscando…";
   setLoading(btn, true);
 
   try{
-    // PT-first no Worker; lang=pt força cadeia de tradução no servidor quando necessário
+    // PT-first no Worker; lang=pt aciona tradução lá quando necessário
     const r  = await fetchWithTimeout(`/biblia/bible/content/NVI.txt?passage=${encodeURIComponent(q)}&lang=pt&t=${Date.now()}`, {}, 14000, 1);
     let txt  = await r.text();
 
