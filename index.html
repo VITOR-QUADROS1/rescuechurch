@@ -6,7 +6,6 @@
   <title>Igreja de Resgate — Rescue Church</title>
   <meta name="theme-color" content="#0b1324">
   <link rel="icon" href="assets/logo.png">
-  <link rel="preload" as="image" href="assets/logo.png">
   <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
@@ -37,6 +36,7 @@
       </div>
       <p id="vday-text" class="verse">Carregando...</p>
       <p id="vday-ref" class="muted"></p>
+      <p id="vday-err" class="muted" style="display:none;color:#ffb4b4"></p>
     </section>
 
     <!-- BUSCA NA BÍBLIA -->
@@ -84,6 +84,16 @@
     </footer>
   </main>
 
-  <script type="module" src="assets/app.js"></script>
+  <!-- Config do canal YouTube -->
+  <script>
+    window.APP_CFG = {
+      yt: {
+        channelId: 'UC11Km85MPiYbuPmG7Lz2Wjg',
+        fullPlaylistId: 'UU11Km85MPiYbuPmG7Lz2Wjg',
+        shortsPlaylistId: 'UUSH11Km85MPiYbuPmG7Lz2Wjg'
+      }
+    };
+  </script>
+  <script defer src="assets/app.js"></script>
 </body>
 </html>
