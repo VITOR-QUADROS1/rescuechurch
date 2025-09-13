@@ -1,28 +1,14 @@
-/* assets/app.js — Rescue Church (v7-fix3) */
-
+/* assets/app.js — Rescue Church (v7-fix4) */
 const $  = (q) => document.querySelector(q);
 const $$ = (q) => Array.from(document.querySelectorAll(q));
 
-let CFG = { proxy:{ workerBase:"" }, biblia:{ defaultVersion:"POR-NVI" }, youtube:{} };
+const CFG = window.APP_CFG || { yt:{} };
 
-async function loadCfg(){
-  if (window.APP_CFG) { CFG = window.APP_CFG; return; }
-  try{
-    const r = await fetch("/config.json", { cache:"no-store" });
-    if(r.ok){
-      const j = await r.json();
-      if (j && typeof j === "object") CFG = j;
-    }
-  }catch(_){}
-}
-
-/* Utils */
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 function setLoading(el, on=true){ if(!el) return; el.classList.toggle("is-loading", !!on); }
 function isEN(t){
   const s = ` ${String(t||"")} `.toLowerCase();
-  const hits = [" the "," and "," lord "," god "," you "," your "," shall "," now "," for "]
-    .filter(w => s.includes(w));
+  const hits = [" the "," and "," lord "," god "," you "," your "," shall "," now "," for "].filter(w => s.includes(w));
   return hits.length >= 2;
 }
 async function fetchWithTimeout(url, opts={}, ms=12000, retries=1){
@@ -40,18 +26,16 @@ async function fetchWithTimeout(url, opts={}, ms=12000, retries=1){
   }
   throw lastErr || new Error(`Timeout/erro: ${url}`);
 }
-function apiBase(){ return (CFG?.proxy?.workerBase || "").replace(/\/$/,""); }
-function api(path){ const b=apiBase(); return b ? `${b}${path}` : path; }
-
-/* Tradução cliente (apenas reforço) */
 async function translateToPT(text){
   if(!text) return text;
   try{
-    let r = await fetchWithTimeout(api(`/api/translate?q=${encodeURIComponent(text)}&from=auto&to=pt-BR&t=${Date.now()}`), {}, 12000, 0);
+    // faz 1 tentativa com auto → pt
+    let r = await fetchWithTimeout(`/api/translate?q=${encodeURIComponent(text)}&from=auto&to=pt-BR&t=${Date.now()}`, {}, 12000, 0);
     let j = await r.json().catch(()=>({}));
     let out = j?.text || text;
     if(isEN(out)){
-      r = await fetchWithTimeout(api(`/api/translate?q=${encodeURIComponent(text)}&from=en&to=pt-BR&t=${Date.now()}`), {}, 12000, 0);
+      // reforço, se ainda parecer EN
+      r = await fetchWithTimeout(`/api/translate?q=${encodeURIComponent(text)}&from=en&to=pt-BR&t=${Date.now()}`, {}, 12000, 0);
       j = await r.json().catch(()=>({}));
       out = j?.text || out;
     }
@@ -59,31 +43,29 @@ async function translateToPT(text){
   }catch{ return text; }
 }
 
-/* Versículo do dia */
+/* ---------- Versículo do dia ---------- */
 async function loadVDay(){
   const txt  = $("#vday-text");
   const ref  = $("#vday-ref");
   const err  = $("#vday-err");
   const btn  = $("#btn-vday");
-
   if (!txt || !ref) return;
 
   err && (err.style.display = "none");
   err && (err.textContent = "");
   txt.textContent = "Carregando…";
   ref.textContent = "";
-
   setLoading(btn, true);
+
   try{
-    const url = api(`/api/verse-of-day?lang=pt&force=fallback&t=${Date.now()}`);
-    const r   = await fetchWithTimeout(url, {}, 12000, 1);
-    const j   = await r.json();
+    const r = await fetchWithTimeout(`/api/verse-of-day?lang=pt&t=${Date.now()}`, {}, 12000, 1);
+    const j = await r.json();
 
     let out = String(j?.text || "");
     if(isEN(out)) out = await translateToPT(out);
 
     txt.textContent = out.trim() || "(sem texto)";
-    ref.textContent = `${j?.ref || ""} — ${j?.version || "NVI"}`;
+    ref.textContent = `${j?.ref || ""} — ${j?.version || ""}`;
   }catch(e){
     console.error("VDoD erro:", e);
     txt.textContent = "(erro ao carregar)";
@@ -93,13 +75,12 @@ async function loadVDay(){
   }
 }
 
-/* Busca bíblica */
+/* ---------- Busca bíblica ---------- */
 async function searchBible(){
   const qEl  = $("#biblia-q");
   const out  = $("#biblia-out");
   const err  = $("#biblia-err");
   const btn  = $("#btn-buscar");
-
   if(!qEl || !out) return;
 
   const q = (qEl.value || "").trim();
@@ -112,9 +93,13 @@ async function searchBible(){
   setLoading(btn, true);
 
   try{
-    const r  = await fetchWithTimeout(api(`/biblia/bible/content/NVI.txt?passage=${encodeURIComponent(q)}&lang=pt&t=${Date.now()}`), {}, 14000, 1);
+    // Rota do Worker — versão no path é só para casar o padrão; o Worker ignora
+    const r  = await fetchWithTimeout(`/biblia/bible/content/NVI.txt?passage=${encodeURIComponent(q)}&lang=pt&t=${Date.now()}`, {}, 14000, 1);
     let txt  = await r.text();
+
+    // Reforço no cliente caso ainda venha EN
     if(isEN(txt)) txt = await translateToPT(txt);
+
     out.value = txt.trim();
   }catch(e){
     console.error("Busca erro:", e);
@@ -128,7 +113,7 @@ async function searchBible(){
   }
 }
 
-/* YouTube */
+/* ---------- YouTube ---------- */
 function cardVideo(v){
   if(!v?.id) return "";
   const thumb = v.thumb || `https://i.ytimg.com/vi/${v.id}/mqdefault.jpg`;
@@ -141,15 +126,14 @@ function cardVideo(v){
         <div class="yt-title">${title}</div>
         <div class="yt-date">${date}</div>
       </div>
-    </a>
-  `;
+    </a>`;
 }
 async function loadLiveOrLatest(){
   const liveBox   = $("#live");
   const latestBox = $("#latest");
   if(!liveBox && !latestBox) return;
 
-  const channelId = (CFG?.youtube?.channelId) || ( CFG?.yt?.channelId ) || "";
+  const channelId = (CFG?.yt?.channelId) || "";
   if(!channelId){
     latestBox && (latestBox.innerHTML = "<div class='muted'>Canal não configurado.</div>");
     return;
@@ -157,7 +141,7 @@ async function loadLiveOrLatest(){
 
   // LIVE
   try{
-    const r = await fetchWithTimeout(api(`/api/youtube/live?channel=${encodeURIComponent(channelId)}&t=${Date.now()}`), {}, 10000, 1);
+    const r = await fetchWithTimeout(`/api/youtube/live?channel=${encodeURIComponent(channelId)}&t=${Date.now()}`, {}, 10000, 1);
     const j = await r.json().catch(()=>({}));
     if(j?.isLive && j?.id){
       liveBox.innerHTML = `
@@ -173,32 +157,25 @@ async function loadLiveOrLatest(){
     liveBox && (liveBox.style.display="none");
   }
 
-  // ÚLTIMOS
+  // Últimos
   try{
-    const r = await fetchWithTimeout(api(`/api/youtube?channel=${encodeURIComponent(channelId)}&t=${Date.now()}`), {}, 12000, 1);
-    const j = await r.json().catch(()=>({ items:[] }));
+    const r = await fetchWithTimeout(`/api/youtube?channel=${encodeURIComponent(channelId)}&t=${Date.now()}`, {}, 12000, 1);
+    const j = await r.json().catch(()=>({ items:[], error:"" }));
     const html = (j.items||[]).slice(0,8).map(cardVideo).join("");
-    if(latestBox) latestBox.innerHTML = html || "<div class='muted'>Sem vídeos recentes (verifique a API key).</div>";
+    if(latestBox) latestBox.innerHTML = html || `<div class='muted'>Sem vídeos recentes.${j.error?` (${j.error})`:''}</div>`;
   }catch(e){
     console.error("YT erro:", e);
     if(latestBox) latestBox.innerHTML = "<div class='muted'>Falha ao carregar vídeos.</div>";
   }
 }
 
-/* Boot */
-async function boot(){
-  await loadCfg();
-
+/* ---------- Boot ---------- */
+function boot(){
   $("#yy") && ($("#yy").textContent = new Date().getFullYear());
-
   $("#btn-vday")?.addEventListener("click", loadVDay);
   $("#btn-copy")?.addEventListener("click", async ()=> {
-    try{
-      const t = ($("#vday-text")?.textContent || "").trim();
-      if(t) await navigator.clipboard.writeText(t);
-    }catch{}
+    try{ const t = ($("#vday-text")?.textContent || "").trim(); if(t) await navigator.clipboard.writeText(t); }catch{}
   });
-
   $("#btn-buscar")?.addEventListener("click", searchBible);
   $("#biblia-q")?.addEventListener("keydown", (e)=>{ if(e.key==="Enter") searchBible(); });
 
