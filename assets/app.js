@@ -1,10 +1,13 @@
-/* assets/app.js — Rescue Church
- * - Versículo do dia (sempre PT)
+/* assets/app.js — Rescue Church (v4)
+ * - Versículo do dia (PT garantido, com fallback temporário)
  * - Busca bíblica PT-first (fallback EN->PT)
  * - YouTube (live/últimos/playlist)
- * Requer o Worker com as rotas: /api/verse-of-day, /biblia/bible/content/NVI.txt,
+ * Requer o Worker com as rotas: /api/verse-of-day, /biblia/bible/content/{VER}.txt,
  * /api/translate, /api/youtube e /api/youtube/live
  */
+
+window.APP_VERSION = "RC app v4";
+console.log(window.APP_VERSION);
 
 const $  = (q) => document.querySelector(q);
 const $$ = (q) => Array.from(document.querySelectorAll(q));
@@ -14,12 +17,12 @@ const CFG = window.APP_CFG || { yt:{} };
 /* -------------------- Utils -------------------- */
 function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
 function isEN(t){
-  // heurística simples: presença de palavras comuns em inglês
-  const s = (t||"").toLowerCase();
+  const s = (" " + (t||"") + " ").toLowerCase();
   const hits = [" the ", " and ", " lord ", " god ", " you ", " your ", " shall "].filter(w => s.includes(w));
   return hits.length >= 2;
 }
 function setLoading(el, on=true){ if(!el) return; el.classList.toggle("is-loading", !!on); }
+function show(el, on=true){ if(!el) return; el.style.display = on ? "" : "none"; }
 
 // fetch com timeout + 1 retry
 async function fetchWithTimeout(url, opts={}, ms=10000, retries=1){
@@ -53,42 +56,42 @@ async function loadVDay(){
   const ref  = $("#vday-ref");
   const err  = $("#vday-err");
   const btn  = $("#btn-vday");
-
-  if (!txt || !ref) return;
+  if (!txt || !ref || !err) return;
 
   err.textContent = "";
+  show(err, false);
   txt.textContent = "Carregando…";
   ref.textContent = "";
 
   setLoading(btn, true);
   try{
-    // 1) chama diretamente o endpoint do Worker (já tem PT-first + fallback)
-    let j = null;
-    try{
-      const r = await fetchWithTimeout("/api/verse-of-day", {}, 9000, 1);
-      j = await r.json();
-    }catch(_){ j = null; }
+    // TEMPORÁRIO: força fallback enquanto o Worker antigo estiver no ar.
+    // Quando publicar o Worker corrigido, troque para "/api/verse-of-day"
+    let r = await fetchWithTimeout("/api/verse-of-day?force=fallback", {}, 9000, 1);
+    let j = await r.json();
 
     let out = j?.text || "";
 
-    // 2) se ainda vazio, tenta forçar rota PT com a mesma referência
+    // Se ainda vazio, tenta rota PT direta com mesma referência
     if(!out && j?.ref){
       try{
-        const r2 = await fetchWithTimeout(`/biblia/bible/content/NVI.txt?passage=${encodeURIComponent(j.ref)}`, {}, 9000, 0);
+        const r2 = await fetchWithTimeout(
+          `/biblia/bible/content/NVI.txt?passage=${encodeURIComponent(j.ref)}`, {}, 9000, 0
+        );
         if (r2.ok) out = await r2.text();
       }catch(_){}
     }
 
-    if(!out) throw new Error("Sem texto retornado");
+    if(!out) throw new Error("Sem texto");
 
-    // 3) evita “piscar” em EN — traduz antes de renderizar
     if(isEN(out)) out = await translateToPT(out);
 
     txt.textContent = out.trim();
     ref.textContent = `${j?.ref || ""} — ${j?.version || "NVI"}`;
   }catch(e){
     txt.textContent = "(erro ao carregar)";
-    err.textContent = "Falha ao consultar o versículo do dia.";
+    err.textContent = "Falha ao consultar /api/verse-of-day ou /biblia/… (verifique rotas do Worker e cache).";
+    show(err, true);
   }finally{
     setLoading(btn, false);
   }
@@ -96,46 +99,55 @@ async function loadVDay(){
 
 /* -------------------- Busca bíblica -------------------- */
 async function searchBible(){
-  const qEl  = $("#biblia-q");
-  const out  = $("#biblia-text");
-  const err  = $("#biblia-err");
-  const btn  = $("#btn-buscar");
+  const qEl   = $("#biblia-q");
+  const verEl = $("#biblia-ver");
+  const out   = $("#biblia-text") || $("#biblia-out"); // compatibilidade
+  const err   = $("#biblia-err");
+  const btn   = $("#btn-buscar");
 
-  if(!qEl || !out) return;
+  if(!qEl || !out || !err) return;
+
   const q = (qEl.value || "").trim();
   if(!q){ qEl.focus(); return; }
 
   err.textContent = "";
-  out.textContent = "Buscando…";
+  show(err, false);
+  out.value = "Buscando…";
   setLoading(btn, true);
 
+  const ver = (verEl?.value || "NVI").trim(); // NVI (default) / NTLH
+
   try{
-    // 1) PT-first
+    // 1) PT-first (bible-edge)
     let txt = "";
     try{
-      const r = await fetchWithTimeout(`/biblia/bible/content/NVI.txt?passage=${encodeURIComponent(q)}`, {}, 10000, 1);
+      const r = await fetchWithTimeout(
+        `/biblia/bible/content/${encodeURIComponent(ver)}.txt?passage=${encodeURIComponent(q)}`,
+        {}, 10000, 1
+      );
       if (r.ok) txt = await r.text();
     }catch(_){}
 
-    // 2) fallback: pede para o Worker resolver (Logos + tradução)
+    // 2) fallback: chama de novo (o Worker resolve EN->PT no backend)
     if(!txt){
       try{
-        const r2 = await fetchWithTimeout(`/api/translate?q=${encodeURIComponent(q)}&from=auto&to=auto`, {}, 6000, 0);
-        // nada a ver com a busca — apenas aquece o cache de tradução (opcional)
+        const r3 = await fetchWithTimeout(
+          `/biblia/bible/content/${encodeURIComponent(ver)}.txt?passage=${encodeURIComponent(q)}`,
+          {}, 10000, 1
+        );
+        if (r3.ok) txt = await r3.text();
       }catch(_){}
-      // usa o mesmo handler do VDoD por trás — o próprio Worker vai traduzir
-      const r3 = await fetchWithTimeout(`/biblia/bible/content/NVI.txt?passage=${encodeURIComponent(q)}`, {}, 10000, 1);
-      if (r3.ok) txt = await r3.text();
     }
 
     if(!txt) throw new Error("Sem resultado");
 
     if(isEN(txt)) txt = await translateToPT(txt);
 
-    out.textContent = txt.trim();
+    out.value = txt.trim();
   }catch(e){
-    out.textContent = "";
+    out.value = "";
     err.textContent = "Não foi possível buscar. Verifique a referência (ex.: João 3:16).";
+    show(err, true);
   }finally{
     setLoading(btn, false);
   }
@@ -161,29 +173,29 @@ function cardVideo(v){
 async function loadLiveOrLatest(){
   const liveBox   = $("#live");
   const latestBox = $("#latest");
-  if(!liveBox && !latestBox) return;
-
+  const liveFrame = $("#liveFrame");
   const channelId = CFG?.yt?.channelId || "";
+
   if(!channelId) return;
 
-  // tenta live
+  // Live
   try{
     const r = await fetchWithTimeout(`/api/youtube/live?channel=${encodeURIComponent(channelId)}`, {}, 7000, 1);
     const j = await r.json().catch(()=>({}));
     if(j?.isLive && j?.id){
-      liveBox.innerHTML = `
-        <a class="live-banner" target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=${j.id}">
-          <span class="live-dot"></span> AO VIVO — Clique para assistir
-        </a>`;
-      liveBox.style.display = "";
+      if(liveFrame){
+        liveFrame.src = `https://www.youtube.com/embed/${j.id}?autoplay=0`;
+      }
+      liveBox && (liveBox.innerHTML = `<a class="live-banner" target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=${j.id}"><span class="live-dot"></span> AO VIVO — Clique para assistir</a>`);
+      liveBox && (liveBox.style.display="");
     }else{
-      liveBox.style.display = "none";
+      liveBox && (liveBox.style.display="none");
     }
   }catch(_){
     liveBox && (liveBox.style.display="none");
   }
 
-  // últimos vídeos
+  // Últimos vídeos
   try{
     const r = await fetchWithTimeout(`/api/youtube?channel=${encodeURIComponent(channelId)}`, {}, 9000, 1);
     const j = await r.json().catch(()=>({ items:[] }));
@@ -209,7 +221,7 @@ async function fillPlaylist(playlistId, containerSel){
 
 /* -------------------- Boot -------------------- */
 function boot(){
-  // ano no rodapé, se existir
+  // ano no rodapé
   $("#yy") && ($("#yy").textContent = new Date().getFullYear());
 
   // Versículo do dia
