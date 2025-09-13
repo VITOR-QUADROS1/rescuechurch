@@ -23,12 +23,10 @@
   </header>
 
   <main class="container">
-    <!-- HERO -->
     <section id="inicio" class="hero card">
       <img src="assets/logo.png" alt="Rescue Church" class="hero-img cover">
     </section>
 
-    <!-- VERSÍCULO DO DIA -->
     <section id="vdia" class="card section">
       <div class="section-head">
         <h2>Versículo do dia</h2>
@@ -39,7 +37,6 @@
       <p id="vday-err" class="muted" style="display:none;color:#ffb4b4"></p>
     </section>
 
-    <!-- BUSCA NA BÍBLIA -->
     <section id="buscar" class="card section">
       <h2>Buscar na Bíblia</h2>
       <div class="search-row">
@@ -51,10 +48,11 @@
         <button id="btn-buscar" class="btn">Procurar</button>
       </div>
       <p class="hint">Dica: referências aceitam variações (“Joao 3:16”, “Salmos 23”).</p>
-      <textarea id="biblia-out" class="result" readonly></textarea>
+      
+      <textarea id="biblia-out" class="result" readonly rows="5"></textarea>
+
     </section>
 
-    <!-- VÍDEOS & LIVES -->
     <section id="videos" class="card section">
       <h2>Vídeos & Lives</h2>
 
@@ -84,7 +82,6 @@
     </footer>
   </main>
 
-  <!-- Config do canal YouTube -->
   <script>
     window.APP_CFG = {
       yt: {
