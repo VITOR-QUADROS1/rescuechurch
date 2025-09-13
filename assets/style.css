@@ -65,8 +65,10 @@ h2{margin:0 0 10px 0}
 
 /* Result box */
 .result{
-  min-height:54px; padding:14px; border-radius:12px; border:1px dashed rgba(255,255,255,.12);
-  background:rgba(255,255,255,.02)
+  min-height:160px; /* maior de novo */
+  padding:14px; border-radius:12px; border:1px dashed rgba(255,255,255,.12);
+  background:rgba(255,255,255,.02); width:100%; resize:vertical;
+  color:var(--text);
 }
 
 /* Vídeos layout */
@@ -89,36 +91,18 @@ h2{margin:0 0 10px 0}
 /* Footer */
 .footer{padding:30px 0 50px; text-align:center; color:var(--muted)}
 
-
-/* ================================== */
-/* MELHORIAS PARA TELAS MENORES (RESPONSIVO) */
-/* ================================== */
-
-/* Para telas até 900px (Tablets em modo paisagem) */
+/* Responsivo */
 @media (max-width:900px){
   .search-row{grid-template-columns:1fr 160px 120px}
   .hitem{min-width:260px}
 }
-
-/* Para telas até 700px (Celulares e tablets em modo retrato) */
 @media (max-width:700px){
-  /* Ajusta o espaçamento geral da página */
-  .container{padding: 16px;}
-
-  /* Faz o menu quebrar a linha em vez de estourar a tela */
-  .topbar{flex-wrap: wrap; gap: 10px;}
-  
-  /* Deixa a linha de busca com 1 coluna só */
+  .container{padding:16px;}
+  .topbar{flex-wrap:wrap; gap:10px;}
   .search-row{grid-template-columns:1fr}
   .select{width:100%}
-
-  /* Diminui um pouco as fontes para caber melhor */
-  h2 {font-size: 1.4rem;}
-  .verse{font-size: 1.05rem;}
-  
-  /* Ajusta a altura da imagem de topo */
+  h2{font-size:1.4rem;}
+  .verse{font-size:1.05rem;}
   .hero{height:200px;}
-  
-  /* Ajusta a altura do player de vídeo ao vivo */
   .live-col .player{height:220px;}
 }
