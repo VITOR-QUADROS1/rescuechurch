@@ -1,147 +1,141 @@
-// --- helpers ---
-const $ = (q) => document.querySelector(q);
+const $  = (q)=>document.querySelector(q);
 
-// --- Versículo do dia ---
-async function loadVerseOfDay() {
-  const box = $("#vday-text");
-  const refEl = $("#vday-ref");
-  if (!box || !refEl) return;
+// BASE do Worker (prefixa todas as chamadas)
+const CFG = window.APP_CFG || {};
+const BASE = (CFG?.proxy?.workerBase || "").replace(/\/$/, "");
+const api = (p) => `${BASE}${p}`;
 
-  box.textContent = "(carregando...)";
-  refEl.textContent = "";
-
-  try {
-    const r = await fetch("/api/verse-of-day");
-    if (!r.ok) throw new Error("A API falhou.");
-    
-    const j = await r.json();
-    box.textContent = j.text || "(erro ao carregar)";
-    refEl.textContent = `(${j.ref} — ${j.version})`;
-
-  } catch (e) {
-    console.error("Erro em loadVerseOfDay:", e);
-    box.textContent = "(erro ao carregar)";
+// util: timeout p/ fetch (evita “Carregando...” eterno)
+async function fetchWithTimeout(url, opts={}, ms=12000){
+  const ctrl = new AbortController();
+  const id = setTimeout(()=>ctrl.abort(), ms);
+  try{
+    const r = await fetch(url, {...opts, signal: ctrl.signal});
+    clearTimeout(id);
+    return r;
+  }catch(e){
+    clearTimeout(id);
+    throw e;
   }
 }
 
-// --- Busca na Bíblia ---
-async function searchBible() {
-  const input = $("#biblia-q");
-  const result = $("#biblia-out");
-  if (!input || !result) return;
-  
-  result.value = "(buscando...)";
-  const ref = (input.value || "").trim();
-  if (!ref) { result.value = ""; return; }
+function isEN(s){
+  if(!s) return false;
+  if(/[áéíóúãõâêôçÁÉÍÓÚÃÕÂÊÔÇ]/.test(s)) return false;
+  const en = (s.match(/\b(the|and|will|because|but|world|son|god|him|for|so|loved|lord)\b/gi)||[]).length;
+  const pt = (s.match(/\b(de|do|da|que|porque|mas|Deus|mundo|filho|Senhor)\b/gi)||[]).length;
+  return en>=2 && pt<2;
+}
+async function translateToPT(text){
+  try{
+    const r = await fetchWithTimeout(api(`/api/translate?q=${encodeURIComponent(text)}&from=en&to=pt-BR`), {}, 12000);
+    const j = await r.json().catch(()=>({}));
+    return j.text || text;
+  }catch{ return text; }
+}
 
-  try {
-    const url = `/biblia/bible/content/NVI.txt?passage=${encodeURIComponent(ref)}`;
-    const r = await fetch(url);
-    const txt = await r.text();
+/* -------------- VERSÍCULO DO DIA -------------- */
+async function loadVDay(){
+  const t = $("#vday-text"), ref = $("#vday-ref"), err = $("#vday-err");
+  t.textContent = "Carregando...";
+  ref.textContent = ""; err.style.display="none";
 
-    if (!r.ok) {
-        result.value = txt || "Nenhum resultado encontrado.";
-    } else {
-        result.value = txt;
+  try{
+    // 1) tenta a API do worker
+    const r = await fetchWithTimeout(api("/api/verse-of-day"), {}, 12000);
+    const j = await r.json().catch(()=>({}));
+    let txt = j.text || "";
+
+    // 2) se vier sem texto, busca pela rota PT usando a mesma referência
+    if(!txt && j.ref){
+      const r2 = await fetchWithTimeout(api(`/biblia/bible/content/NVI.txt?passage=${encodeURIComponent(j.ref)}`), {}, 12000);
+      if(r2.ok) txt = await r2.text();
     }
-  } catch (e) {
-    console.error("Erro em searchBible:", e);
-    result.value = "Erro ao consultar a Bíblia.";
+
+    if(!txt){ throw new Error("Sem texto retornado"); }
+
+    if(isEN(txt)) txt = await translateToPT(txt);
+
+    t.textContent = txt;
+    ref.textContent = `(${j.ref || ""} — ${j.version || "NVI"})`;
+  }catch(e){
+    console.error("VOD error:", e);
+    t.textContent = "(erro ao carregar)";
+    err.textContent = "Falha ao consultar /api/verse-of-day ou /biblia/... (verifique o workerBase no config.json).";
+    err.style.display = "block";
   }
 }
 
-// --- Vídeos do YouTube ---
-function createYtUrl(id) {
-    return `https://www.youtube.com/embed/${id}?autoplay=0&rel=0`;
+/* -------------- BUSCA -------------- */
+async function searchBible(){
+  const q = $("#biblia-q"), out = $("#biblia-out");
+  const ref = (q.value||"").trim();
+  if(!ref){ out.value=""; return; }
+  out.value="(buscando...)";
+  try{
+    const r = await fetchWithTimeout(api(`/biblia/bible/content/NVI.txt?passage=${encodeURIComponent(ref)}`), {}, 15000);
+    let txt = await r.text();
+    if(!r.ok || !txt) throw new Error("sem resultado");
+    if(isEN(txt)) txt = await translateToPT(txt);
+    out.value = txt;
+  }catch(e){
+    console.error("Busca error:", e);
+    out.value = "Erro ao consultar a Bíblia. (Cheque se o workerBase está correto).";
+  }
 }
 
-async function loadLiveOrLatest(cfg) {
-    const frame = $("#liveFrame");
-    if (!frame || !cfg.channelId) return;
+/* -------------- YOUTUBE -------------- */
+function yt(id){ return `https://www.youtube.com/embed/${id}?autoplay=0&rel=0`; }
 
-    try {
-        const r = await fetch(`/api/youtube/live?channel=${cfg.channelId}`);
-        const live = await r.json();
-        if (live && live.isLive && live.id) {
-            frame.src = createYtUrl(live.id);
-            return;
-        }
-    } catch {}
+async function loadLiveOrLatest(){
+  const frame = $("#liveFrame");
+  if(!CFG?.youtube?.channelId){ frame.removeAttribute("src"); return; }
 
-    try {
-        const r = await fetch(`/api/youtube?channel=${cfg.channelId}`);
-        const latest = await r.json();
-        const videoId = latest?.items?.[0]?.id;
-        if (videoId) {
-            frame.src = createYtUrl(videoId);
-        }
-    } catch (e) {
-        console.error("Erro ao carregar vídeo principal:", e);
+  try{
+    const live = await fetchWithTimeout(api(`/api/youtube/live?channel=${CFG.youtube.channelId}`), {}, 10000).then(r=>r.json());
+    if(live?.isLive && live?.id){ frame.src = yt(live.id); return; }
+  }catch(e){ console.warn("live err", e); }
+
+  try{
+    const list = await fetchWithTimeout(api(`/api/youtube?channel=${CFG.youtube.channelId}`), {}, 10000).then(r=>r.json());
+    const id = list?.items?.[0]?.id;
+    if(id) frame.src = yt(id);
+  }catch(e){ console.warn("latest err", e); }
+}
+
+async function fillPlaylist(pid, sel){
+  const box = $(sel); box.innerHTML="";
+  if(!pid) return;
+  try{
+    const data = await fetchWithTimeout(api(`/api/youtube?playlist=${pid}`), {}, 12000).then(r=>r.json());
+    for(const it of (data.items||[])){
+      const a = document.createElement("a");
+      a.href = `https://www.youtube.com/watch?v=${it.id}`; a.target="_blank"; a.rel="noopener";
+      a.className = "hitem";
+      a.innerHTML = `
+        <img class="hthumb" src="${it.thumb}" alt="">
+        <div class="hmeta">
+          <span class="t">${it.title||""}</span>
+          <span class="s">${(it.published||"").replace("T"," ").replace("Z","")}</span>
+        </div>`;
+      box.appendChild(a);
     }
+  }catch(e){ console.warn("playlist err", e); }
 }
 
-async function fillPlaylist(playlistId, selector) {
-    const container = $(selector);
-    if (!container || !playlistId) return;
-    
-    try {
-        const r = await fetch(`/api/youtube?playlist=${playlistId}`);
-        const data = await r.json();
-        container.innerHTML = ""; // Limpa antes de preencher
-
-        for (const item of data.items) {
-            const a = document.createElement("a");
-            a.href = `https://www.youtube.com/watch?v=${item.id}`;
-            a.target = "_blank";
-            a.rel = "noopener";
-            a.className = "hitem";
-            a.innerHTML = `
-                <img class="hthumb" src="${item.thumb}" alt="Thumbnail">
-                <div class="hmeta">
-                    <span class="t">${item.title}</span>
-                    <span class="s">${new Date(item.published).toLocaleDateString('pt-BR')}</span>
-                </div>
-            `;
-            container.appendChild(a);
-        }
-    } catch (e) {
-        console.error(`Erro ao preencher playlist ${selector}:`, e);
-        container.innerHTML = "<p class='muted'>Não foi possível carregar os vídeos.</p>";
-    }
-}
-
-
-// --- Inicialização ---
-function boot() {
-  // Configurações (embutidas para simplicidade)
-  const config = {
-      youtube: {
-          channelId: 'UC11Km85MPiYbuPmG7Lz2Wjg',
-          shortsPlaylistId: 'UUSH11Km85MPiYbuPmG7Lz2Wjg',
-          fullPlaylistId: 'UU11Km85MPiYbuPmG7Lz2Wjg'
-      }
-  };
-
-  // Eventos de busca
-  $("#btn-buscar")?.addEventListener("click", searchBible);
-  $("#biblia-q")?.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") searchBible();
-  });
-
-  // Botão de copiar
-  $("#btn-copy")?.addEventListener("click", () => {
-      const text = $("#vday-text")?.textContent || "";
-      navigator.clipboard.writeText(text.trim());
-  });
-  
-  // Ano no rodapé
+/* -------------- binds -------------- */
+function boot(){
   $("#yy").textContent = new Date().getFullYear();
+  $("#btn-buscar")?.addEventListener("click", searchBible);
+  $("#biblia-q")?.addEventListener("keydown", e=>{ if(e.key==="Enter") searchBible(); });
 
-  // Carrega dados dinâmicos
-  loadVerseOfDay();
-  loadLiveOrLatest(config.youtube);
-  fillPlaylist(config.youtube.shortsPlaylistId, "#shorts");
-  fillPlaylist(config.youtube.fullPlaylistId, "#fulls");
+  $("#btn-copy")?.addEventListener("click", async ()=>{
+    try{ await navigator.clipboard.writeText(($("#vday-text").textContent||"").trim()); }catch{}
+  });
+
+  loadVDay();
+  loadLiveOrLatest();
+  fillPlaylist(CFG?.youtube?.shortsPlaylistId, "#shorts");
+  fillPlaylist(CFG?.youtube?.fullPlaylistId,   "#fulls");
 }
-
 document.addEventListener("DOMContentLoaded", boot);
