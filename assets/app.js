@@ -1,12 +1,12 @@
-/* assets/app.js — Rescue Church (v7.1)
+/* assets/app.js — Rescue Church (v7-fix2 ✓)
  * - Versículo do dia (PT garantido)
- * - Busca bíblica PT-first (traduz no cliente se ainda vier EN)
+ * - Busca bíblica PT-first (traduz cliente se vier EN)
  * - YouTube: live + últimos (fallback de UI)
- * Requer Worker versão "2025-09-13-hard-pt" (ou mais novo)
+ * Requer Worker versão "2025-09-13-hard-pt-fix2"
  */
-
 const $  = (q) => document.querySelector(q);
 const $$ = (q) => Array.from(document.querySelectorAll(q));
+
 const CFG = window.APP_CFG || { yt:{} };
 
 /* -------------------- Utils -------------------- */
@@ -24,7 +24,7 @@ async function fetchWithTimeout(url, opts={}, ms=12000, retries=1){
     const ctrl = new AbortController();
     const id   = setTimeout(()=>ctrl.abort(), ms);
     try{
-      const r = await fetch(url, {...opts, signal: ctrl.signal, cache: "no-store"});
+      const r = await fetch(url, {...opts, signal: ctrl.signal});
       clearTimeout(id);
       if (r.ok) return r;
       lastErr = new Error(`HTTP ${r.status}`);
@@ -36,12 +36,9 @@ async function fetchWithTimeout(url, opts={}, ms=12000, retries=1){
 async function translateToPT(text){
   if(!text) return text;
   try{
-    // 1ª tentativa (auto → pt-BR)
     let r = await fetchWithTimeout(`/api/translate?q=${encodeURIComponent(text)}&from=auto&to=pt-BR&t=${Date.now()}`, {}, 12000, 0);
     let j = await r.json().catch(()=>({}));
     let out = j?.text || text;
-
-    // 2ª (força en → pt-BR) se ainda parecer EN
     if(isEN(out)){
       r = await fetchWithTimeout(`/api/translate?q=${encodeURIComponent(text)}&from=en&to=pt-BR&t=${Date.now()}`, {}, 12000, 0);
       j = await r.json().catch(()=>({}));
@@ -60,24 +57,26 @@ async function loadVDay(){
 
   if (!txt || !ref) return;
 
-  if(err){ err.style.display="none"; err.textContent=""; }
+  err && (err.style.display = "none");
+  err && (err.textContent = "");
   txt.textContent = "Carregando…";
   ref.textContent = "";
 
   setLoading(btn, true);
   try{
-    // 'lang=pt' garante tradução no Worker; 't' evita cache
-    const r   = await fetchWithTimeout(`/api/verse-of-day?lang=pt&t=${Date.now()}`, {}, 12000, 1);
+    const url = `/api/verse-of-day?lang=pt&force=fallback&t=${Date.now()}`;
+    const r   = await fetchWithTimeout(url, {}, 12000, 1);
     const j   = await r.json();
-    let out   = String(j?.text || "");
-    if(isEN(out)) out = await translateToPT(out);  // reforço extra no cliente
+
+    let out = String(j?.text || "");
+    if(isEN(out)) out = await translateToPT(out);
 
     txt.textContent = out.trim() || "(sem texto)";
     ref.textContent = `${j?.ref || ""} — ${j?.version || "NVI"}`;
   }catch(e){
     console.error("VDoD erro:", e);
     txt.textContent = "(erro ao carregar)";
-    if(err){ err.textContent = "Falha ao consultar /api/verse-of-day."; err.style.display = "block"; }
+    if(err){ err.textContent = "Falha ao consultar /api/verse-of-day (verifique roteamento do Worker)."; err.style.display = "block"; }
   }finally{
     setLoading(btn, false);
   }
@@ -95,12 +94,14 @@ async function searchBible(){
   const q = (qEl.value || "").trim();
   if(!q){ qEl.focus(); return; }
 
-  if(err){ err.style.display="none"; err.textContent=""; }
+  err && (err.style.display="none");
+  err && (err.textContent="");
+
   out.value = "Buscando…";
   setLoading(btn, true);
 
   try{
-    // PT-first no Worker; lang=pt aciona tradução lá quando necessário
+    // PT-first no Worker; lang=pt força cadeia de tradução no servidor quando necessário
     const r  = await fetchWithTimeout(`/biblia/bible/content/NVI.txt?passage=${encodeURIComponent(q)}&lang=pt&t=${Date.now()}`, {}, 14000, 1);
     let txt  = await r.text();
 
@@ -174,19 +175,6 @@ async function loadLiveOrLatest(){
   }catch(e){
     console.error("YT erro:", e);
     if(latestBox) latestBox.innerHTML = "<div class='muted'>Falha ao carregar vídeos.</div>";
-  }
-}
-async function fillPlaylist(playlistId, containerSel){
-  const box = $(containerSel);
-  if(!box || !playlistId) return;
-  try{
-    const r = await fetchWithTimeout(`/api/youtube?playlist=${encodeURIComponent(playlistId)}&t=${Date.now()}`, {}, 12000, 1);
-    const j = await r.json().catch(()=>({ items:[] }));
-    const html = (j.items||[]).map(cardVideo).join("");
-    box.innerHTML = html || "<div class='muted'>Sem itens na playlist.</div>";
-  }catch(e){
-    console.error("Playlist erro:", e);
-    box.innerHTML = "<div class='muted'>Erro ao carregar playlist.</div>";
   }
 }
 
