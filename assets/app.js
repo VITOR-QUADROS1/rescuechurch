@@ -16,34 +16,18 @@ async function fetchWithTimeout(url, opts={}, ms=12000){
   }
 }
 
-function isEN(s){
-  if(!s) return false;
-  if(/[áéíóúãõâêôçÁÉÍÓÚÃÕÂÊÔÇ]/.test(s)) return false;
-  const en = (s.match(/\b(the|and|will|because|but|world|son|god|him|for|so|loved)\b/gi)||[]).length;
-  const pt = (s.match(/\b(de|do|da|que|porque|mas|Deus|mundo|filho|Senhor)\b/gi)||[]).length;
-  return en>=2 && pt<2;
-}
-async function translateToPT(text){
-  try{
-    const r = await fetchWithTimeout(`/api/translate?q=${encodeURIComponent(text)}&from=en&to=pt-BR`, {}, 12000);
-    const j = await r.json().catch(()=>({}));
-    return j.text || text;
-  }catch{ return text; }
-}
-
 /* -------------- VERSÍCULO DO DIA -------------- */
 async function loadVDay(){
   const t = $("#vday-text"), ref = $("#vday-ref"), err = $("#vday-err");
   t.textContent = "Carregando...";
   ref.textContent = ""; err.style.display="none";
 
-  try{
-    // 1) tenta a API
+  try {
     const r = await fetchWithTimeout("/api/verse-of-day", {}, 12000);
     const j = await r.json().catch(()=>({}));
     let txt = j.text || "";
 
-    // 2) se vier sem texto, busca pela rota PT usando a mesma referência
+    // Se o texto estiver vazio, busca a versão PT diretamente (fallback)
     if(!txt && j.ref){
       const r2 = await fetchWithTimeout(`/biblia/bible/content/NVI.txt?passage=${encodeURIComponent(j.ref)}`, {}, 12000);
       if(r2.ok) txt = await r2.text();
@@ -51,13 +35,12 @@ async function loadVDay(){
 
     if(!txt){ throw new Error("Sem texto retornado"); }
 
-    if(isEN(txt)) txt = await translateToPT(txt);
-
+    // A tradução agora é responsabilidade do Worker, então apenas exibimos o resultado
     t.textContent = txt;
     ref.textContent = `(${j.ref || ""} — ${j.version || "NVI"})`;
-  }catch(e){
+  } catch(e) {
     t.textContent = "(erro ao carregar)";
-    err.textContent = "Falha ao consultar /api/verse-of-day ou /biblia/... (verifique rotas do Worker e cache).";
+    err.textContent = "Falha ao consultar /api/verse-of-day (verifique as rotas do Worker e o cache).";
     err.style.display = "block";
   }
 }
@@ -70,12 +53,14 @@ async function searchBible(){
   out.value="(buscando...)";
   try{
     const r = await fetchWithTimeout(`/biblia/bible/content/NVI.txt?passage=${encodeURIComponent(ref)}`, {}, 15000);
-    let txt = await r.text();
+    const txt = await r.text();
+
     if(!r.ok || !txt) throw new Error("sem resultado");
-    if(isEN(txt)) txt = await translateToPT(txt);
+    
+    // A tradução é responsabilidade do Worker, apenas exibimos
     out.value = txt;
   }catch(e){
-    out.value = "Erro ao consultar a Bíblia. (Cheque se /biblia/* está roteado para o Worker).";
+    out.value = "Erro ao consultar a Bíblia. (Verifique se /biblia/* está roteado para o Worker).";
   }
 }
 
