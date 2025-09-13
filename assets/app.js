@@ -34,7 +34,7 @@ async function loadVDay(){
     ref.textContent = `(${j.ref || ""} — ${j.version || "NVI"})`;
   }catch(e){
     t.textContent = "(erro ao carregar)";
-    err.textContent = "Falha ao consultar /api/verse-of-day (verifique as rotas do Worker e o cache).";
+    err.textContent = "Falha ao consultar /api/verse-of-day. Verifique o Worker e limpe o cache.";
     err.style.display = "block";
   }
 }
@@ -54,11 +54,11 @@ async function searchBible(){
     // Apenas exibe, pois o Worker já garante o texto em português
     out.value = txt;
   }catch(e){
-    out.value = "Erro ao consultar a Bíblia. (Verifique se /biblia/* está roteado para o Worker).";
+    out.value = "Erro ao consultar a Bíblia. Verifique se a rota /biblia/* está correta.";
   }
 }
 
-/* -------------- YOUTUBE (Sem alterações) -------------- */
+/* -------------- YOUTUBE -------------- */
 function yt(id){ return `https://www.youtube.com/embed/${id}?autoplay=0&rel=0`; }
 
 async function loadLiveOrLatest(){
@@ -72,13 +72,21 @@ async function loadLiveOrLatest(){
     const list = await fetchWithTimeout(`/api/youtube?channel=${CFG.yt.channelId}`, {}, 10000).then(r=>r.json());
     const id = list?.items?.[0]?.id;
     if(id) frame.src = yt(id);
-  }catch{}
+  }catch(e){
+    frame.parentElement.innerHTML = "<p>Não foi possível carregar o vídeo.</p>";
+  }
 }
 
 async function fillPlaylist(pid, sel){
-  const box = $(sel); box.innerHTML="";
+  const box = $(sel); 
+  if(!box) return;
+  box.innerHTML="";
   try{
     const data = await fetchWithTimeout(`/api/youtube?playlist=${pid}`, {}, 12000).then(r=>r.json());
+    if (!data.items || data.items.length === 0) {
+        box.innerHTML = "<p>Não foi possível carregar a lista de vídeos.</p>";
+        return;
+    }
     for(const it of (data.items||[])){
       const a = document.createElement("a");
       a.href = `https://www.youtube.com/watch?v=${it.id}`; a.target="_blank"; a.rel="noopener";
@@ -91,7 +99,9 @@ async function fillPlaylist(pid, sel){
         </div>`;
       box.appendChild(a);
     }
-  }catch{}
+  }catch(e){
+    box.innerHTML = "<p>Não foi possível carregar a lista de vídeos.</p>";
+  }
 }
 
 /* -------------- binds -------------- */
@@ -105,9 +115,8 @@ function boot(){
   });
 
   loadVDay();
-  // As funções do YouTube podem ser mantidas se você as usa
-  // loadLiveOrLatest();
-  // if(CFG?.yt?.shortsPlaylistId) fillPlaylist(CFG.yt.shortsPlaylistId, "#shorts");
-  // if(CFG?.yt?.fullPlaylistId)   fillPlaylist(CFG.yt.fullPlaylistId,   "#fulls");
+  loadLiveOrLatest();
+  if(CFG?.yt?.shortsPlaylistId) fillPlaylist(CFG.yt.shortsPlaylistId, "#shorts");
+  if(CFG?.yt?.fullPlaylistId)   fillPlaylist(CFG.yt.fullPlaylistId,   "#fulls");
 }
 document.addEventListener("DOMContentLoaded", boot);
