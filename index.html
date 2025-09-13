@@ -6,6 +6,7 @@
   <title>Igreja de Resgate — Rescue Church</title>
   <meta name="theme-color" content="#0b1324">
   <link rel="icon" href="assets/logo.png">
+  <link rel="preload" as="image" href="assets/logo.png">
   <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
@@ -36,7 +37,6 @@
       </div>
       <p id="vday-text" class="verse">Carregando...</p>
       <p id="vday-ref" class="muted"></p>
-      <p id="vday-err" class="muted" style="display:none;color:#ffb4b4"></p>
     </section>
 
     <!-- BUSCA NA BÍBLIA -->
@@ -44,10 +44,7 @@
       <h2>Buscar na Bíblia</h2>
       <div class="search-row">
         <input id="biblia-q" class="input" placeholder="Ex.: João 3:16 ou 'amor fé esperança'">
-        <select id="biblia-ver" class="select">
-          <option value="NVI" selected>NVI (pt-BR)</option>
-          <option value="NTLH">NTLH (pt-BR)</option>
-        </select>
+        <select id="biblia-ver" class="select"></select>
         <button id="btn-buscar" class="btn">Procurar</button>
       </div>
       <p class="hint">Dica: referências aceitam variações (“Joao 3:16”, “Salmos 23”).</p>
@@ -68,7 +65,7 @@
         </div>
 
         <div class="shorts-col">
-          <h3>Vídeos Curtos</h3>
+          <h3>Videos Curtos</h3>
           <div id="shorts" class="hscroll"></div>
         </div>
 
@@ -84,16 +81,6 @@
     </footer>
   </main>
 
-  <!-- Config do canal YouTube -->
-  <script>
-    window.APP_CFG = {
-      yt: {
-        channelId: 'UC11Km85MPiYbuPmG7Lz2Wjg',
-        fullPlaylistId: 'UU11Km85MPiYbuPmG7Lz2Wjg',
-        shortsPlaylistId: 'UUSH11Km85MPiYbuPmG7Lz2Wjg'
-      }
-    };
-  </script>
-  <script defer src="assets/app.js"></script>
+  <script type="module" src="assets/app.js"></script>
 </body>
 </html>
