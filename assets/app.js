@@ -1,15 +1,22 @@
-/* assets/app.js — Rescue Church (v7-fix2 ✓)
- * - Versículo do dia (PT garantido)
- * - Busca bíblica PT-first (traduz cliente se vier EN)
- * - YouTube: live + últimos (fallback de UI)
- * Requer Worker versão "2025-09-13-hard-pt-fix2"
- */
+/* assets/app.js — Rescue Church (v7-fix3) */
+
 const $  = (q) => document.querySelector(q);
 const $$ = (q) => Array.from(document.querySelectorAll(q));
 
-const CFG = window.APP_CFG || { yt:{} };
+let CFG = { proxy:{ workerBase:"" }, biblia:{ defaultVersion:"POR-NVI" }, youtube:{} };
 
-/* -------------------- Utils -------------------- */
+async function loadCfg(){
+  if (window.APP_CFG) { CFG = window.APP_CFG; return; }
+  try{
+    const r = await fetch("/config.json", { cache:"no-store" });
+    if(r.ok){
+      const j = await r.json();
+      if (j && typeof j === "object") CFG = j;
+    }
+  }catch(_){}
+}
+
+/* Utils */
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 function setLoading(el, on=true){ if(!el) return; el.classList.toggle("is-loading", !!on); }
 function isEN(t){
@@ -33,14 +40,18 @@ async function fetchWithTimeout(url, opts={}, ms=12000, retries=1){
   }
   throw lastErr || new Error(`Timeout/erro: ${url}`);
 }
+function apiBase(){ return (CFG?.proxy?.workerBase || "").replace(/\/$/,""); }
+function api(path){ const b=apiBase(); return b ? `${b}${path}` : path; }
+
+/* Tradução cliente (apenas reforço) */
 async function translateToPT(text){
   if(!text) return text;
   try{
-    let r = await fetchWithTimeout(`/api/translate?q=${encodeURIComponent(text)}&from=auto&to=pt-BR&t=${Date.now()}`, {}, 12000, 0);
+    let r = await fetchWithTimeout(api(`/api/translate?q=${encodeURIComponent(text)}&from=auto&to=pt-BR&t=${Date.now()}`), {}, 12000, 0);
     let j = await r.json().catch(()=>({}));
     let out = j?.text || text;
     if(isEN(out)){
-      r = await fetchWithTimeout(`/api/translate?q=${encodeURIComponent(text)}&from=en&to=pt-BR&t=${Date.now()}`, {}, 12000, 0);
+      r = await fetchWithTimeout(api(`/api/translate?q=${encodeURIComponent(text)}&from=en&to=pt-BR&t=${Date.now()}`), {}, 12000, 0);
       j = await r.json().catch(()=>({}));
       out = j?.text || out;
     }
@@ -48,7 +59,7 @@ async function translateToPT(text){
   }catch{ return text; }
 }
 
-/* -------------------- Versículo do Dia -------------------- */
+/* Versículo do dia */
 async function loadVDay(){
   const txt  = $("#vday-text");
   const ref  = $("#vday-ref");
@@ -64,7 +75,7 @@ async function loadVDay(){
 
   setLoading(btn, true);
   try{
-    const url = `/api/verse-of-day?lang=pt&force=fallback&t=${Date.now()}`;
+    const url = api(`/api/verse-of-day?lang=pt&force=fallback&t=${Date.now()}`);
     const r   = await fetchWithTimeout(url, {}, 12000, 1);
     const j   = await r.json();
 
@@ -76,13 +87,13 @@ async function loadVDay(){
   }catch(e){
     console.error("VDoD erro:", e);
     txt.textContent = "(erro ao carregar)";
-    if(err){ err.textContent = "Falha ao consultar /api/verse-of-day (verifique roteamento do Worker)."; err.style.display = "block"; }
+    if(err){ err.textContent = "Falha ao consultar /api/verse-of-day."; err.style.display = "block"; }
   }finally{
     setLoading(btn, false);
   }
 }
 
-/* -------------------- Busca bíblica -------------------- */
+/* Busca bíblica */
 async function searchBible(){
   const qEl  = $("#biblia-q");
   const out  = $("#biblia-out");
@@ -101,13 +112,9 @@ async function searchBible(){
   setLoading(btn, true);
 
   try{
-    // PT-first no Worker; lang=pt força cadeia de tradução no servidor quando necessário
-    const r  = await fetchWithTimeout(`/biblia/bible/content/NVI.txt?passage=${encodeURIComponent(q)}&lang=pt&t=${Date.now()}`, {}, 14000, 1);
+    const r  = await fetchWithTimeout(api(`/biblia/bible/content/NVI.txt?passage=${encodeURIComponent(q)}&lang=pt&t=${Date.now()}`), {}, 14000, 1);
     let txt  = await r.text();
-
-    // Reforço no cliente se algo escapar em EN
     if(isEN(txt)) txt = await translateToPT(txt);
-
     out.value = txt.trim();
   }catch(e){
     console.error("Busca erro:", e);
@@ -121,7 +128,7 @@ async function searchBible(){
   }
 }
 
-/* -------------------- YouTube -------------------- */
+/* YouTube */
 function cardVideo(v){
   if(!v?.id) return "";
   const thumb = v.thumb || `https://i.ytimg.com/vi/${v.id}/mqdefault.jpg`;
@@ -142,7 +149,7 @@ async function loadLiveOrLatest(){
   const latestBox = $("#latest");
   if(!liveBox && !latestBox) return;
 
-  const channelId = (CFG?.yt?.channelId) || "";
+  const channelId = (CFG?.youtube?.channelId) || ( CFG?.yt?.channelId ) || "";
   if(!channelId){
     latestBox && (latestBox.innerHTML = "<div class='muted'>Canal não configurado.</div>");
     return;
@@ -150,7 +157,7 @@ async function loadLiveOrLatest(){
 
   // LIVE
   try{
-    const r = await fetchWithTimeout(`/api/youtube/live?channel=${encodeURIComponent(channelId)}&t=${Date.now()}`, {}, 10000, 1);
+    const r = await fetchWithTimeout(api(`/api/youtube/live?channel=${encodeURIComponent(channelId)}&t=${Date.now()}`), {}, 10000, 1);
     const j = await r.json().catch(()=>({}));
     if(j?.isLive && j?.id){
       liveBox.innerHTML = `
@@ -166,20 +173,22 @@ async function loadLiveOrLatest(){
     liveBox && (liveBox.style.display="none");
   }
 
-  // ÚLTIMOS VÍDEOS
+  // ÚLTIMOS
   try{
-    const r = await fetchWithTimeout(`/api/youtube?channel=${encodeURIComponent(channelId)}&t=${Date.now()}`, {}, 12000, 1);
+    const r = await fetchWithTimeout(api(`/api/youtube?channel=${encodeURIComponent(channelId)}&t=${Date.now()}`), {}, 12000, 1);
     const j = await r.json().catch(()=>({ items:[] }));
     const html = (j.items||[]).slice(0,8).map(cardVideo).join("");
-    if(latestBox) latestBox.innerHTML = html || "<div class='muted'>Sem vídeos recentes ou quota esgotada.</div>";
+    if(latestBox) latestBox.innerHTML = html || "<div class='muted'>Sem vídeos recentes (verifique a API key).</div>";
   }catch(e){
     console.error("YT erro:", e);
     if(latestBox) latestBox.innerHTML = "<div class='muted'>Falha ao carregar vídeos.</div>";
   }
 }
 
-/* -------------------- Boot -------------------- */
-function boot(){
+/* Boot */
+async function boot(){
+  await loadCfg();
+
   $("#yy") && ($("#yy").textContent = new Date().getFullYear());
 
   $("#btn-vday")?.addEventListener("click", loadVDay);
@@ -194,9 +203,6 @@ function boot(){
   $("#biblia-q")?.addEventListener("keydown", (e)=>{ if(e.key==="Enter") searchBible(); });
 
   loadLiveOrLatest();
-  if(CFG?.yt?.shortsPlaylistId) fillPlaylist(CFG.yt.shortsPlaylistId, "#shorts");
-  if(CFG?.yt?.fullPlaylistId)   fillPlaylist(CFG.yt.fullPlaylistId,   "#fulls");
-
   loadVDay();
 }
 document.addEventListener("DOMContentLoaded", boot);
