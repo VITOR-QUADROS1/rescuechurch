@@ -37,6 +37,8 @@
       </div>
       <p id="vday-text" class="verse">Carregando...</p>
       <p id="vday-ref" class="muted"></p>
+      <!-- elemento de erro esperado pelo app.js -->
+      <p id="vday-err" class="muted" style="display:none"></p>
     </section>
 
     <!-- BUSCA NA BÍBLIA -->
@@ -81,6 +83,20 @@
     </footer>
   </main>
 
-  <script type="module" src="assets/app.js"></script>
+  <!-- Carrega config e SÓ depois o app.js (para CFG.yt estar disponível) -->
+  <script>
+    (async () => {
+      try {
+        const r = await fetch('assets/config.json', { cache: 'no-cache' });
+        window.APP_CFG = await r.json();
+      } catch {
+        window.APP_CFG = { yt: {} };
+      }
+      const s = document.createElement('script');
+      s.type = 'module';
+      s.src = 'assets/app.js';
+      document.body.appendChild(s);
+    })();
+  </script>
 </body>
 </html>
