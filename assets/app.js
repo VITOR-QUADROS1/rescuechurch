@@ -1,248 +1,132 @@
-/* assets/app.js — Rescue Church (v4)
- * - Versículo do dia (PT garantido, com fallback temporário)
- * - Busca bíblica PT-first (fallback EN->PT)
- * - YouTube (live/últimos/playlist)
- * Requer o Worker com as rotas: /api/verse-of-day, /biblia/bible/content/{VER}.txt,
- * /api/translate, /api/youtube e /api/youtube/live
- */
+/* assets/app.js — Rescue Church (v5) */
+window.APP_VERSION = "RC app v5"; console.log(window.APP_VERSION);
 
-window.APP_VERSION = "RC app v4";
-console.log(window.APP_VERSION);
-
-const $  = (q) => document.querySelector(q);
-const $$ = (q) => Array.from(document.querySelectorAll(q));
-
+const $  = q => document.querySelector(q);
+const $$ = q => Array.from(document.querySelectorAll(q));
 const CFG = window.APP_CFG || { yt:{} };
 
-/* -------------------- Utils -------------------- */
-function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
-function isEN(t){
-  const s = (" " + (t||"") + " ").toLowerCase();
-  const hits = [" the ", " and ", " lord ", " god ", " you ", " your ", " shall "].filter(w => s.includes(w));
-  return hits.length >= 2;
-}
-function setLoading(el, on=true){ if(!el) return; el.classList.toggle("is-loading", !!on); }
-function show(el, on=true){ if(!el) return; el.style.display = on ? "" : "none"; }
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+function isEN(t){ const s=(" "+(t||"")+" ").toLowerCase(); return [" the "," and "," lord "," god "," you "," your "," shall "].some(w=>s.includes(w)); }
+function setLoading(el,on=true){ if(el) el.classList.toggle("is-loading",!!on); }
+function show(el,on=true){ if(el) el.style.display = on ? "" : "none"; }
 
-// fetch com timeout + 1 retry
 async function fetchWithTimeout(url, opts={}, ms=10000, retries=1){
   for(let i=0;i<=retries;i++){
-    const ctrl = new AbortController();
-    const id   = setTimeout(()=>ctrl.abort(), ms);
-    try{
-      const r = await fetch(url, {...opts, signal: ctrl.signal});
-      clearTimeout(id);
-      if (r.ok) return r;
-    }catch(_){
-      clearTimeout(id);
-    }
-    if (i < retries) await sleep(150);
-  }
-  throw new Error(`Timeout/erro: ${url}`);
+    const ctrl=new AbortController(); const id=setTimeout(()=>ctrl.abort(),ms);
+    try{ const r=await fetch(url,{...opts,signal:ctrl.signal}); clearTimeout(id); if(r.ok) return r; }catch{ clearTimeout(id); }
+    if(i<retries) await sleep(200);
+  } throw new Error("Timeout: "+url);
 }
 
 async function translateToPT(text){
   if(!text) return text;
   try{
-    const r = await fetchWithTimeout(`/api/translate?q=${encodeURIComponent(text)}&from=en&to=pt-BR`, {}, 10000, 1);
-    const j = await r.json().catch(()=>({}));
+    let r = await fetchWithTimeout(`/api/translate?q=${encodeURIComponent(text)}&from=en&to=pt-BR&t=${Date.now()}`,{},10000,0);
+    let j = await r.json().catch(()=>({}));
+    if (!j?.text || isEN(j.text)) {
+      // segunda tentativa com from=auto
+      r = await fetchWithTimeout(`/api/translate?q=${encodeURIComponent(text)}&from=auto&to=pt-BR&t=${Date.now()}`,{},10000,0);
+      j = await r.json().catch(()=>({}));
+    }
     return j?.text || text;
   }catch{ return text; }
 }
 
-/* -------------------- Versículo do Dia -------------------- */
+/* --- mapa PT p/ os 6 versos do dia --- */
+const VDAY_PT = {
+  "João 3:16":"Porque Deus tanto amou o mundo que deu o seu Filho unigênito, para que todo o que nele crer não pereça, mas tenha a vida eterna.",
+  "Salmos 23:1":"O Senhor é o meu pastor; de nada terei falta.",
+  "Provérbios 3:5-6":"Confie no Senhor de todo o seu coração e não se apoie em seu próprio entendimento; reconheça o Senhor em todos os seus caminhos, e ele endireitará as suas veredas.",
+  "Filipenses 4:6":"Não andem ansiosos por coisa alguma, mas em tudo, pela oração e súplicas, e com ação de graças, apresentem seus pedidos a Deus.",
+  "Romanos 8:28":"Sabemos que Deus age em todas as coisas para o bem daqueles que o amam, dos que foram chamados segundo o seu propósito.",
+  "Isaías 41:10":"Por isso não tema, pois estou com você; não tenha medo, pois sou o seu Deus. Eu o fortalecerei e o ajudarei; eu o segurarei com a minha mão direita vitoriosa."
+};
+
+/* ---------------- Versículo do Dia ---------------- */
 async function loadVDay(){
-  const txt  = $("#vday-text");
-  const ref  = $("#vday-ref");
-  const err  = $("#vday-err");
-  const btn  = $("#btn-vday");
-  if (!txt || !ref || !err) return;
-
-  err.textContent = "";
-  show(err, false);
-  txt.textContent = "Carregando…";
-  ref.textContent = "";
-
-  setLoading(btn, true);
+  const txt=$("#vday-text"), ref=$("#vday-ref"), err=$("#vday-err"), btn=$("#btn-vday");
+  if(!txt||!ref||!err) return;
+  err.textContent=""; show(err,false); txt.textContent="Carregando…"; ref.textContent="";
+  setLoading(btn,true);
   try{
-    // TEMPORÁRIO: força fallback enquanto o Worker antigo estiver no ar.
-    // Quando publicar o Worker corrigido, troque para "/api/verse-of-day"
-    let r = await fetchWithTimeout("/api/verse-of-day?force=fallback", {}, 9000, 1);
-    let j = await r.json();
-
+    const r = await fetchWithTimeout(`/api/verse-of-day?force=fallback&t=${Date.now()}`, {}, 9000, 1);
+    const j = await r.json();
     let out = j?.text || "";
-
-    // Se ainda vazio, tenta rota PT direta com mesma referência
     if(!out && j?.ref){
-      try{
-        const r2 = await fetchWithTimeout(
-          `/biblia/bible/content/NVI.txt?passage=${encodeURIComponent(j.ref)}`, {}, 9000, 0
-        );
-        if (r2.ok) out = await r2.text();
-      }catch(_){}
+      const r2 = await fetchWithTimeout(`/biblia/bible/content/NVI.txt?passage=${encodeURIComponent(j.ref)}&t=${Date.now()}`, {}, 9000, 0);
+      if(r2.ok) out = await r2.text();
     }
-
+    if(!out && j?.ref && VDAY_PT[j.ref]) out = VDAY_PT[j.ref]; // último recurso no front
     if(!out) throw new Error("Sem texto");
-
     if(isEN(out)) out = await translateToPT(out);
-
     txt.textContent = out.trim();
     ref.textContent = `${j?.ref || ""} — ${j?.version || "NVI"}`;
   }catch(e){
-    txt.textContent = "(erro ao carregar)";
-    err.textContent = "Falha ao consultar /api/verse-of-day ou /biblia/… (verifique rotas do Worker e cache).";
-    show(err, true);
-  }finally{
-    setLoading(btn, false);
-  }
+    txt.textContent="(erro ao carregar)";
+    err.textContent="Falha ao consultar /api/verse-of-day ou /biblia/… (verifique Worker).";
+    show(err,true);
+  }finally{ setLoading(btn,false); }
 }
 
-/* -------------------- Busca bíblica -------------------- */
+/* ---------------- Busca bíblica ---------------- */
 async function searchBible(){
-  const qEl   = $("#biblia-q");
-  const verEl = $("#biblia-ver");
-  const out   = $("#biblia-text") || $("#biblia-out"); // compatibilidade
-  const err   = $("#biblia-err");
-  const btn   = $("#btn-buscar");
-
-  if(!qEl || !out || !err) return;
-
-  const q = (qEl.value || "").trim();
-  if(!q){ qEl.focus(); return; }
-
-  err.textContent = "";
-  show(err, false);
-  out.value = "Buscando…";
-  setLoading(btn, true);
-
-  const ver = (verEl?.value || "NVI").trim(); // NVI (default) / NTLH
-
+  const qEl=$("#biblia-q"), verEl=$("#biblia-ver");
+  const out=$("#biblia-text")||$("#biblia-out"), err=$("#biblia-err"), btn=$("#btn-buscar");
+  if(!qEl||!out||!err) return;
+  const q=(qEl.value||"").trim(); if(!q){ qEl.focus(); return; }
+  err.textContent=""; show(err,false); out.value="Buscando…"; setLoading(btn,true);
+  const ver=(verEl?.value||"NVI").trim();
   try{
-    // 1) PT-first (bible-edge)
-    let txt = "";
+    let txt="";
     try{
-      const r = await fetchWithTimeout(
-        `/biblia/bible/content/${encodeURIComponent(ver)}.txt?passage=${encodeURIComponent(q)}`,
-        {}, 10000, 1
-      );
-      if (r.ok) txt = await r.text();
-    }catch(_){}
-
-    // 2) fallback: chama de novo (o Worker resolve EN->PT no backend)
+      const r = await fetchWithTimeout(`/biblia/bible/content/${encodeURIComponent(ver)}.txt?passage=${encodeURIComponent(q)}&t=${Date.now()}`, {}, 10000, 1);
+      if(r.ok) txt = await r.text();
+    }catch{}
     if(!txt){
-      try{
-        const r3 = await fetchWithTimeout(
-          `/biblia/bible/content/${encodeURIComponent(ver)}.txt?passage=${encodeURIComponent(q)}`,
-          {}, 10000, 1
-        );
-        if (r3.ok) txt = await r3.text();
-      }catch(_){}
+      const r2 = await fetchWithTimeout(`/biblia/bible/content/${encodeURIComponent(ver)}.txt?passage=${encodeURIComponent(q)}&t=${Date.now()}`, {}, 10000, 1);
+      if(r2.ok) txt = await r2.text();
     }
-
     if(!txt) throw new Error("Sem resultado");
-
     if(isEN(txt)) txt = await translateToPT(txt);
-
     out.value = txt.trim();
   }catch(e){
-    out.value = "";
-    err.textContent = "Não foi possível buscar. Verifique a referência (ex.: João 3:16).";
-    show(err, true);
-  }finally{
-    setLoading(btn, false);
-  }
+    out.value=""; err.textContent="Não foi possível buscar. Verifique a referência (ex.: João 3:16)."; show(err,true);
+  }finally{ setLoading(btn,false); }
 }
 
-/* -------------------- YouTube -------------------- */
+/* ---------------- YouTube ---------------- */
 function cardVideo(v){
   if(!v?.id) return "";
-  const thumb = v.thumb || "https://i.ytimg.com/vi/"+v.id+"/mqdefault.jpg";
-  const title = (v.title || "").trim();
+  const thumb = v.thumb || `https://i.ytimg.com/vi/${v.id}/mqdefault.jpg`;
+  const title = (v.title||"").trim();
   const date  = v.published ? new Date(v.published).toLocaleDateString("pt-BR") : "";
-  return `
-    <a class="yt-card" target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=${v.id}">
-      <img loading="lazy" src="${thumb}" alt="">
-      <div class="yt-info">
-        <div class="yt-title">${title}</div>
-        <div class="yt-date">${date}</div>
-      </div>
-    </a>
-  `;
+  return `<a class="yt-card" target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=${v.id}">
+    <img loading="lazy" src="${thumb}" alt=""><div class="yt-info"><div class="yt-title">${title}</div><div class="yt-date">${date}</div></div></a>`;
 }
-
 async function loadLiveOrLatest(){
-  const liveBox   = $("#live");
-  const latestBox = $("#latest");
-  const liveFrame = $("#liveFrame");
-  const channelId = CFG?.yt?.channelId || "";
-
-  if(!channelId) return;
-
-  // Live
+  const live=$("#live"), latest=$("#latest"), liveFrame=$("#liveFrame");
+  const channelId = CFG?.yt?.channelId || ""; if(!channelId) return;
   try{
-    const r = await fetchWithTimeout(`/api/youtube/live?channel=${encodeURIComponent(channelId)}`, {}, 7000, 1);
+    const r = await fetchWithTimeout(`/api/youtube/live?channel=${encodeURIComponent(channelId)}&t=${Date.now()}`,{},7000,1);
     const j = await r.json().catch(()=>({}));
-    if(j?.isLive && j?.id){
-      if(liveFrame){
-        liveFrame.src = `https://www.youtube.com/embed/${j.id}?autoplay=0`;
-      }
-      liveBox && (liveBox.innerHTML = `<a class="live-banner" target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=${j.id}"><span class="live-dot"></span> AO VIVO — Clique para assistir</a>`);
-      liveBox && (liveBox.style.display="");
-    }else{
-      liveBox && (liveBox.style.display="none");
-    }
-  }catch(_){
-    liveBox && (liveBox.style.display="none");
-  }
-
-  // Últimos vídeos
+    if(j?.isLive && j?.id){ if(liveFrame) liveFrame.src=`https://www.youtube.com/embed/${j.id}?autoplay=0`; live&&(live.innerHTML=`<a class="live-banner" target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=${j.id}"><span class="live-dot"></span> AO VIVO — Clique para assistir</a>`); live&&(live.style.display=""); }
+    else{ live&&(live.style.display="none"); }
+  }catch{ live&&(live.style.display="none"); }
   try{
-    const r = await fetchWithTimeout(`/api/youtube?channel=${encodeURIComponent(channelId)}`, {}, 9000, 1);
-    const j = await r.json().catch(()=>({ items:[] }));
+    const r = await fetchWithTimeout(`/api/youtube?channel=${encodeURIComponent(channelId)}&t=${Date.now()}`,{},9000,1);
+    const j = await r.json().catch(()=>({items:[]}));
     const html = (j.items||[]).slice(0,8).map(cardVideo).join("");
-    if(latestBox) latestBox.innerHTML = html || "<div class='muted'>Sem vídeos recentes.</div>";
-  }catch(_){
-    if(latestBox) latestBox.innerHTML = "<div class='muted'>Falha ao carregar vídeos.</div>";
-  }
+    latest ? latest.innerHTML = (html || "<div class='muted'>Sem vídeos recentes.</div>") : null;
+  }catch{ latest && (latest.innerHTML="<div class='muted'>Falha ao carregar vídeos.</div>"); }
 }
 
-async function fillPlaylist(playlistId, containerSel){
-  const box = $(containerSel);
-  if(!box || !playlistId) return;
-  try{
-    const r = await fetchWithTimeout(`/api/youtube?playlist=${encodeURIComponent(playlistId)}`, {}, 9000, 1);
-    const j = await r.json().catch(()=>({ items:[] }));
-    const html = (j.items||[]).map(cardVideo).join("");
-    box.innerHTML = html || "<div class='muted'>Sem itens.</div>";
-  }catch(_){
-    box.innerHTML = "<div class='muted'>Erro ao carregar playlist.</div>";
-  }
-}
-
-/* -------------------- Boot -------------------- */
+/* ---------------- Boot ---------------- */
 function boot(){
-  // ano no rodapé
   $("#yy") && ($("#yy").textContent = new Date().getFullYear());
-
-  // Versículo do dia
   $("#btn-vday")?.addEventListener("click", loadVDay);
-  $("#btn-copy")?.addEventListener("click", async ()=>{
-    try{
-      const t = ($("#vday-text")?.textContent || "").trim();
-      if(t) await navigator.clipboard.writeText(t);
-    }catch{}
-  });
-
-  // Busca bíblica
+  $("#btn-copy")?.addEventListener("click", async()=>{ try{ const t=($("#vday-text")?.textContent||"").trim(); if(t) await navigator.clipboard.writeText(t);}catch{} });
   $("#btn-buscar")?.addEventListener("click", searchBible);
-  $("#biblia-q")?.addEventListener("keydown", (e)=>{ if(e.key==="Enter") searchBible(); });
-
-  // YouTube
-  loadLiveOrLatest();
-  if(CFG?.yt?.shortsPlaylistId) fillPlaylist(CFG.yt.shortsPlaylistId, "#shorts");
-  if(CFG?.yt?.fullPlaylistId)   fillPlaylist(CFG.yt.fullPlaylistId,   "#fulls");
-
-  // Carrega VDoD na entrada
-  loadVDay();
+  $("#biblia-q")?.addEventListener("keydown",(e)=>{ if(e.key==="Enter") searchBible(); });
+  loadLiveOrLatest(); loadVDay();
 }
 document.addEventListener("DOMContentLoaded", boot);
