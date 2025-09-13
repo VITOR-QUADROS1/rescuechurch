@@ -1,10 +1,9 @@
-/* assets/app.js — Rescue Church (v7)
+/* assets/app.js — Rescue Church (v7 ✓)
  * - Versículo do dia (PT garantido)
- * - Busca bíblica PT-first (com tradução cliente se cair EN)
- * - YouTube: ao vivo + listas (com fallback de UI)
- * Requer o Worker atualizado (v: 2025-09-13-hard-pt)
+ * - Busca bíblica PT-first (traduz cliente se vier EN)
+ * - YouTube: live + últimos (fallback de UI)
+ * Requer Worker versão "2025-09-13-hard-pt"
  */
-
 const $  = (q) => document.querySelector(q);
 const $$ = (q) => Array.from(document.querySelectorAll(q));
 
@@ -37,21 +36,16 @@ async function fetchWithTimeout(url, opts={}, ms=12000, retries=1){
 async function translateToPT(text){
   if(!text) return text;
   try{
-    // 1ª tentativa (auto->pt)
     let r = await fetchWithTimeout(`/api/translate?q=${encodeURIComponent(text)}&from=auto&to=pt-BR&t=${Date.now()}`, {}, 12000, 0);
     let j = await r.json().catch(()=>({}));
     let out = j?.text || text;
-
-    // Se continuar com “cara” de EN, tenta forçar en->pt
     if(isEN(out)){
       r = await fetchWithTimeout(`/api/translate?q=${encodeURIComponent(text)}&from=en&to=pt-BR&t=${Date.now()}`, {}, 12000, 0);
       j = await r.json().catch(()=>({}));
       out = j?.text || out;
     }
     return out;
-  }catch{
-    return text;
-  }
+  }catch{ return text; }
 }
 
 /* -------------------- Versículo do Dia -------------------- */
@@ -63,20 +57,18 @@ async function loadVDay(){
 
   if (!txt || !ref) return;
 
-  err.style.display = "none";
-  err.textContent = "";
+  err && (err.style.display = "none");
+  err && (err.textContent = "");
   txt.textContent = "Carregando…";
   ref.textContent = "";
 
   setLoading(btn, true);
   try{
-    // No Worker, lang=pt + force=fallback garantem PT do lado do servidor
     const url = `/api/verse-of-day?lang=pt&force=fallback&t=${Date.now()}`;
     const r   = await fetchWithTimeout(url, {}, 12000, 1);
     const j   = await r.json();
 
     let out = String(j?.text || "");
-    // Belt & suspenders: ainda traduzo se “parecer” EN
     if(isEN(out)) out = await translateToPT(out);
 
     txt.textContent = out.trim() || "(sem texto)";
@@ -84,8 +76,7 @@ async function loadVDay(){
   }catch(e){
     console.error("VDoD erro:", e);
     txt.textContent = "(erro ao carregar)";
-    err.textContent = "Falha ao consultar /api/verse-of-day.";
-    err.style.display = "block";
+    if(err){ err.textContent = "Falha ao consultar /api/verse-of-day."; err.style.display = "block"; }
   }finally{
     setLoading(btn, false);
   }
@@ -94,7 +85,6 @@ async function loadVDay(){
 /* -------------------- Busca bíblica -------------------- */
 async function searchBible(){
   const qEl  = $("#biblia-q");
-  const verEl= $("#biblia-ver"); // dropdown (opcional, não influencia o Worker)
   const out  = $("#biblia-out");
   const err  = $("#biblia-err");
   const btn  = $("#btn-buscar");
@@ -111,12 +101,11 @@ async function searchBible(){
   setLoading(btn, true);
 
   try{
-    // 1) PT-first via Worker (passage + lang=pt) => o Worker tenta NVI (bible-edge)
-    //    e, se cair no fallback EN, traduz do lado do servidor
+    // PT-first no Worker; lang=pt força cadeia de tradução no servidor quando necessário
     const r  = await fetchWithTimeout(`/biblia/bible/content/NVI.txt?passage=${encodeURIComponent(q)}&lang=pt&t=${Date.now()}`, {}, 14000, 1);
     let txt  = await r.text();
 
-    // 2) Segurança extra no cliente (se ainda vier EN por qualquer motivo)
+    // Reforço no cliente se algo escapar em EN
     if(isEN(txt)) txt = await translateToPT(txt);
 
     out.value = txt.trim();
@@ -153,7 +142,7 @@ async function loadLiveOrLatest(){
   const latestBox = $("#latest");
   if(!liveBox && !latestBox) return;
 
-  const channelId = CFG?.yt?.channelId || "";
+  const channelId = (CFG?.yt?.channelId) || "";
   if(!channelId){
     latestBox && (latestBox.innerHTML = "<div class='muted'>Canal não configurado.</div>");
     return;
@@ -204,10 +193,8 @@ async function fillPlaylist(playlistId, containerSel){
 
 /* -------------------- Boot -------------------- */
 function boot(){
-  // ano no rodapé, se existir
   $("#yy") && ($("#yy").textContent = new Date().getFullYear());
 
-  // Versículo do dia
   $("#btn-vday")?.addEventListener("click", loadVDay);
   $("#btn-copy")?.addEventListener("click", async ()=> {
     try{
@@ -216,16 +203,13 @@ function boot(){
     }catch{}
   });
 
-  // Busca bíblica
   $("#btn-buscar")?.addEventListener("click", searchBible);
   $("#biblia-q")?.addEventListener("keydown", (e)=>{ if(e.key==="Enter") searchBible(); });
 
-  // YouTube
   loadLiveOrLatest();
   if(CFG?.yt?.shortsPlaylistId) fillPlaylist(CFG.yt.shortsPlaylistId, "#shorts");
   if(CFG?.yt?.fullPlaylistId)   fillPlaylist(CFG.yt.fullPlaylistId,   "#fulls");
 
-  // Carrega VDoD na entrada
   loadVDay();
 }
 document.addEventListener("DOMContentLoaded", boot);
