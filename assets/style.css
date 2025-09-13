@@ -8,15 +8,12 @@
   --accent2:#9b6bff;
   --ring: rgba(122,170,255,.25);
 }
-
 *{box-sizing:border-box}
 html,body{height:100%}
 body{
   margin:0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
   color:var(--text); background: radial-gradient(80% 80% at 95% 5%, #2b1b68 0%, #10182d 40%, #0b1324 100%);
 }
-
-/* Topo */
 .topbar{
   position:sticky; top:0; z-index:10;
   display:flex; align-items:center; justify-content:space-between;
@@ -28,11 +25,7 @@ body{
 .menu{display:flex; gap:18px}
 .menu a{color:var(--muted); text-decoration:none}
 .menu a:hover{color:var(--text)}
-
-/* Container */
 .container{max-width:1200px; margin:0 auto; padding:24px}
-
-/* Card */
 .card{
   background: linear-gradient(180deg, rgba(255,255,255,.02) 0%, rgba(255,255,255,.01) 100%);
   border:1px solid rgba(255,255,255,.06); border-radius:16px;
@@ -41,19 +34,15 @@ body{
 .section{padding:20px 22px; margin:18px 0}
 .section-head{display:flex; align-items:center; justify-content:space-between}
 h2{margin:0 0 10px 0}
-
-/* Hero */
 .hero{height:280px; display:flex; align-items:center; justify-content:center; overflow:hidden; margin-top:6px}
 .hero-img{width:100%; height:100%}
 .hero-img.cover{object-fit:cover}
-
-/* Inputs */
 .input,.select{
   background:#0e1730; color:var(--text); border:1px solid rgba(255,255,255,.08);
   padding:12px 14px; border-radius:10px; outline:none; width:100%;
 }
 .input:focus,.select:focus{box-shadow:0 0 0 6px var(--ring); border-color:var(--accent)}
-.search-row{display:grid; grid-template-columns: 1fr 220px 150px; gap:12px; margin:6px 0 10px}
+.search-row{display:grid; grid-template-columns: 1fr 200px 140px; gap:12px; margin:6px 0 10px}
 .btn{
   background: linear-gradient(135deg, var(--accent), var(--accent2));
   color:white; border:none; padding:12px 16px; border-radius:12px; cursor:pointer; font-weight:600
@@ -62,27 +51,10 @@ h2{margin:0 0 10px 0}
 .pill{border-radius:999px; padding:10px 14px; font-size:.95rem}
 .hint,.muted{color:var(--muted)}
 .verse{font-size:1.15rem}
-
-/* Result box (textarea) */
 .result{
-  display:block;
-  width:100%;
-  min-height:220px;   /* <<< maior e confortável */
-  height:220px;
-  padding:14px 16px;
-  border-radius:12px;
-  border:1px dashed rgba(255,255,255,.12);
-  background:rgba(255,255,255,.02);
-  color:var(--text);
-  line-height:1.5;
-  font-size:.95rem;
-  resize:vertical;          /* permite o usuário aumentar se quiser */
-  white-space:pre-wrap;     /* preserva quebras de linha */
-  overflow:auto;
+  min-height:54px; padding:14px; border-radius:12px; border:1px dashed rgba(255,255,255,.12);
+  background:rgba(255,255,255,.02)
 }
-.result:focus{outline:none; box-shadow:0 0 0 6px var(--ring); border-color:var(--accent)}
-
-/* Vídeos layout */
 .video-grid{display:grid; gap:18px}
 .live-col .player{width:100%; height:320px; border-radius:14px; overflow:hidden; background:#000; border:1px solid rgba(255,255,255,.06)}
 .hscroll{
@@ -98,29 +70,18 @@ h2{margin:0 0 10px 0}
 .hmeta{display:flex; flex-direction:column; padding:10px}
 .hmeta .t{font-weight:600; font-size:.95rem; line-height:1.25rem}
 .hmeta .s{color:var(--muted); font-size:.85rem; margin-top:4px}
-
-/* Footer */
 .footer{padding:30px 0 50px; text-align:center; color:var(--muted)}
-
-/* ================================== */
-/* Responsivo */
-/* ================================== */
-
-/* Tablets landscape */
 @media (max-width:900px){
-  .search-row{grid-template-columns:1fr 180px 130px}
+  .search-row{grid-template-columns:1fr 160px 120px}
   .hitem{min-width:260px}
 }
-
-/* Celulares / tablets portrait */
 @media (max-width:700px){
-  .container{padding:16px;}
-  .topbar{flex-wrap:wrap; gap:10px;}
+  .container{padding: 16px;}
+  .topbar{flex-wrap: wrap; gap: 10px;}
   .search-row{grid-template-columns:1fr}
   .select{width:100%}
-  h2{font-size:1.4rem;}
-  .verse{font-size:1.05rem;}
+  h2 {font-size: 1.4rem;}
+  .verse{font-size: 1.05rem;}
   .hero{height:200px;}
   .live-col .player{height:220px;}
-  .result{min-height:180px; height:180px;} /* um pouco menor no mobile */
 }
