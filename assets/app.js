@@ -101,11 +101,11 @@ function cardVideo(v){
   const title = (v.title||"").trim();
   const date  = v.published ? new Date(v.published).toLocaleDateString("pt-BR") : "";
   return `
-    <a class="yt-card" target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=${v.id}">
-      <img loading="lazy" src="${thumb}" alt="">
-      <div class="yt-info">
-        <div class="yt-title">${title}</div>
-        <div class="yt-date">${date}</div>
+    <a class="hitem" target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=${v.id}">
+      <img class="hthumb" loading="lazy" src="${thumb}" alt="${title}">
+      <div class="hmeta">
+        <div class="t">${title}</div>
+        <div class="s">${date}</div>
       </div>
     </a>
   `;
@@ -120,8 +120,14 @@ async function fetchYTJSON(q){
 async function loadLiveOrLatest(){
   const ch = CFG?.youtube?.channelId || "";
   const liveFrame = $("#liveFrame");
-  const latestBox = $("#fulls");
-  if(!ch) { latestBox && (latestBox.innerHTML="<div class='muted'>Canal não configurado.</div>"); return; }
+  const shortsBox = $("#shorts");
+  const fullsBox = $("#fulls");
+  
+  if(!ch) { 
+    if(shortsBox) shortsBox.innerHTML="<div class='muted'>Canal não configurado.</div>";
+    if(fullsBox) fullsBox.innerHTML="<div class='muted'>Canal não configurado.</div>";
+    return; 
+  }
 
   // 1) live?
   let live = await fetchYTJSON(`/youtube/live?channel=${encodeURIComponent(ch)}&t=${Date.now()}`);
@@ -138,16 +144,17 @@ async function loadLiveOrLatest(){
     liveFrame.src = `https://www.youtube.com/embed/${idToPlay}`;
   }
 
-  if(latestBox){
-    latestBox.innerHTML = items.map(cardVideo).join("") || "<div class='muted'>Sem vídeos recentes.</div>";
-  }
-
   // playlists (shorts/mensagens) — também pegam o fallback RSS no Worker
   if(CFG?.youtube?.shortsPlaylist){
-    fillPlaylist(CFG.youtube.shortsPlaylist, "#shorts");
+    await fillPlaylist(CFG.youtube.shortsPlaylist, "#shorts");
+  } else if(shortsBox) {
+    shortsBox.innerHTML = items.map(cardVideo).join("") || "<div class='muted'>Sem vídeos curtos.</div>";
   }
+
   if(CFG?.youtube?.fullPlaylist){
-    fillPlaylist(CFG.youtube.fullPlaylist, "#fulls");
+    await fillPlaylist(CFG.youtube.fullPlaylist, "#fulls");
+  } else if(fullsBox) {
+    fullsBox.innerHTML = items.map(cardVideo).join("") || "<div class='muted'>Sem vídeos recentes.</div>";
   }
 }
 
