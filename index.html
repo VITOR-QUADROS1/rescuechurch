@@ -26,9 +26,9 @@
   <main class="container">
     <!-- HERO -->
     <section id="inicio" class="hero card">
-      <img src="assets/cover.jpg" alt="Rescue Church" class="hero-img cover">
-      <!-- QR pequeno no canto do banner -->
-      <a class="qr-badge" href="assets/qrcode.png" target="_blank" rel="noopener" aria-label="Abrir QR code">
+      <img src="assets/hero.jpg" alt="Rescue Church" class="hero-img">
+      <!-- QR no canto -->
+      <a class="qr-badge" href="assets/qrcode.png" target="_blank" rel="noopener">
         <img src="assets/qrcode.png" alt="QR code">
       </a>
     </section>
@@ -63,26 +63,27 @@
         <div class="live-col">
           <h3>Ao vivo</h3>
           <div class="player">
-            <iframe id="liveFrame" width="100%" height="100%" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+            <iframe id="liveFrame" width="100%" height="100%" frameborder="0"
+                    allow="autoplay; encrypted-media" allowfullscreen></iframe>
           </div>
           <p class="muted">Se estiver ao vivo, aparece aqui. Caso contrário, mostra o último vídeo.</p>
         </div>
 
         <div class="shorts-col">
           <h3>Curts</h3>
-          <div class="carousel">
-            <button class="car-btn prev" data-target="#shorts" aria-label="Anterior">‹</button>
-            <div id="shorts" class="hscroll"></div>
-            <button class="car-btn next" data-target="#shorts" aria-label="Próximo">›</button>
+          <div class="yt-row">
+            <button class="car-btn prev"  data-target="#shorts" data-dir="prev">‹</button>
+            <div id="shorts" class="yt-track"></div>
+            <button class="car-btn next"  data-target="#shorts" data-dir="next">›</button>
           </div>
         </div>
 
         <div class="full-col">
           <h3>Mensagens completas</h3>
-          <div class="carousel">
-            <button class="car-btn prev" data-target="#fulls" aria-label="Anterior">‹</button>
-            <div id="fulls" class="hscroll"></div>
-            <button class="car-btn next" data-target="#fulls" aria-label="Próximo">›</button>
+          <div class="yt-row">
+            <button class="car-btn prev" data-target="#fulls" data-dir="prev">‹</button>
+            <div id="fulls" class="yt-track"></div>
+            <button class="car-btn next" data-target="#fulls" data-dir="next">›</button>
           </div>
         </div>
       </div>
@@ -93,13 +94,11 @@
     </footer>
   </main>
 
-  <!-- MODAL de vídeo (player flutuante) -->
-  <div id="ytModal" class="yt-modal" hidden>
-    <div class="yt-box">
-      <button class="yt-close" aria-label="Fechar">✕</button>
-      <div class="yt-player">
-        <iframe id="ytFrame" src="" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-      </div>
+  <!-- Modal de vídeo -->
+  <div id="ytModal" class="modal" aria-hidden="true">
+    <div class="modal__dialog" role="dialog" aria-modal="true" aria-label="Player do YouTube">
+      <button class="modal__close" id="ytClose" aria-label="Fechar">×</button>
+      <iframe id="ytFrame" src="" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
     </div>
   </div>
 
