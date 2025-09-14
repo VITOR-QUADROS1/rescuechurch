@@ -1,86 +1,118 @@
 <!doctype html>
 <html lang="pt-BR">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Igreja de Resgate — Rescue Church</title>
-  <meta name="theme-color" content="#0b1324">
-  <link rel="icon" href="assets/logo.png">
-  <link rel="preload" as="image" href="assets/logo.png">
-  <link rel="stylesheet" href="assets/style.css">
-</head>
-<body>
-  <header class="topbar">
-    <div class="brand">
-      <img src="assets/logo.png" class="brand-logo" alt="Rescue Church">
-      <span>Igreja de Resgate</span>
-    </div>
-    <nav class="menu">
-      <a href="#inicio">Início</a>
-      <a href="#vdia">Versículo do Dia</a>
-      <a href="#buscar">Buscar na Bíblia</a>
-      <a href="#videos">Vídeos & Lives</a>
-    </nav>
-  </header>
-
-  <main class="container">
-    <!-- HERO -->
-    <section id="inicio" class="hero card">
-      <img src="assets/logo.png" alt="Rescue Church" class="hero-img cover">
-    </section>
-
-    <!-- VERSÍCULO DO DIA -->
-    <section id="vdia" class="card section">
-      <div class="section-head">
-        <h2>Versículo do dia</h2>
-        <button id="btn-copy" class="btn pill">Copiar 📋</button>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Igreja de Resgate</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="assets/style.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="wrap">
+        <div class="brand">
+          <span class="logo">⛪</span>
+          <span class="brand-name">Igreja de Resgate</span>
+        </div>
+        <nav class="site-nav">
+          <a href="#vday">Versículo</a>
+          <a href="#busca">Bíblia</a>
+          <a href="#videos">Vídeos</a>
+        </nav>
       </div>
-      <p id="vday-text" class="verse">Carregando...</p>
-      <p id="vday-ref" class="muted"></p>
-    </section>
+    </header>
 
-    <!-- BUSCA NA BÍBLIA -->
-    <section id="buscar" class="card section">
-      <h2>Buscar na Bíblia</h2>
-      <div class="search-row">
-        <input id="biblia-q" class="input" placeholder="Ex.: João 3:16 ou 'amor fé esperança'">
-        <select id="biblia-ver" class="select"></select>
-        <button id="btn-buscar" class="btn">Procurar</button>
-      </div>
-      <p class="hint">Dica: referências aceitam variações (“Joao 3:16”, “Salmos 23”).</p>
-      <textarea id="biblia-out" class="result" readonly></textarea>
-    </section>
-
-    <!-- VÍDEOS & LIVES -->
-    <section id="videos" class="card section">
-      <h2>Vídeos & Lives</h2>
-
-      <div class="video-grid">
-        <div class="live-col">
-          <h3>Ao vivo</h3>
-          <div class="player">
-            <iframe id="liveFrame" width="100%" height="100%" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+    <main class="wrap main">
+      <!-- =================== Versículo do dia =================== -->
+      <section id="vday" class="card section">
+        <div class="section-head">
+          <h2>Versículo do dia</h2>
+          <div class="actions">
+            <button id="btn-vday" class="btn">Atualizar</button>
+            <button id="btn-copy" class="btn btn-ghost">Copiar</button>
           </div>
-          <p class="muted">Se estiver ao vivo, aparece aqui. Caso contrário, mostra o último vídeo.</p>
         </div>
 
-        <div class="shorts-col">
-          <h3>Curtos</h3>
-          <div id="shorts" class="hscroll"></div>
+        <p id="vday-text" class="verse big muted">(carregando...)</p>
+        <div class="ref" id="vday-ref"></div>
+        <div id="vday-err" class="err" style="display:none"></div>
+      </section>
+
+      <!-- =================== Buscar na Bíblia =================== -->
+      <section id="busca" class="card section">
+        <h2>Buscar na Bíblia</h2>
+
+        <div class="search-row">
+          <input id="biblia-q" type="text" class="input" placeholder='Ex.: "João 3:16" ou "Salmos 23"' />
+          <select id="biblia-ver" class="select">
+            <!-- será preenchido por config.json (app.js) -->
+            <option value="NVI">NVI (pt-BR)</option>
+          </select>
+          <button id="btn-buscar" class="btn">Procurar</button>
         </div>
 
-        <div class="full-col">
-          <h3>Mensagens completas</h3>
-          <div id="fulls" class="hscroll"></div>
+        <p class="muted small">
+          Dica: referências aceitam variações (Ex.: "joao 3:16", "salmos 23", "tiago 3").
+        </p>
+
+        <textarea id="biblia-out" class="output" rows="10" spellcheck="false" placeholder="(sem resultados)"></textarea>
+      </section>
+
+      <!-- =================== Vídeos & Lives =================== -->
+      <section id="videos" class="card section">
+        <h2>Vídeos & Lives</h2>
+
+        <div class="video-grid">
+          <!-- Live / Último vídeo -->
+          <div class="live-col">
+            <h3>Ao vivo</h3>
+            <div class="player">
+              <iframe id="liveFrame" width="100%" height="100%" frameborder="0"
+                      allow="autoplay; encrypted-media" allowfullscreen
+                      title="Transmissão ao vivo"></iframe>
+            </div>
+            <p class="muted">Se estiver ao vivo, aparece aqui. Caso contrário, mostramos o último vídeo.</p>
+          </div>
+
+          <!-- Shorts -->
+          <div class="shorts-col">
+            <div class="section-head small-gap">
+              <h3>Vídeos Curtos</h3>
+              <div class="actions">
+                <button class="car-btn prev" data-target="#shorts" data-dir="prev" aria-label="Anterior">‹</button>
+                <button class="car-btn next" data-target="#shorts" data-dir="next" aria-label="Próximo">›</button>
+              </div>
+            </div>
+            <div id="shorts" class="hscroll">
+              <!-- cards entram aqui via JS -->
+            </div>
+          </div>
+
+          <!-- Mensagens completas -->
+          <div class="full-col">
+            <div class="section-head small-gap">
+              <h3>Mensagens completas</h3>
+              <div class="actions">
+                <button class="car-btn prev" data-target="#fulls" data-dir="prev" aria-label="Anterior">‹</button>
+                <button class="car-btn next" data-target="#fulls" data-dir="next" aria-label="Próximo">›</button>
+              </div>
+            </div>
+            <div id="fulls" class="hscroll">
+              <!-- cards entram aqui via JS -->
+            </div>
+          </div>
         </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap">
+        <p>© <span id="yy"></span> Igreja de Resgate — feito com amor.</p>
       </div>
-    </section>
-
-    <footer class="footer">
-      <small>© <span id="yy"></span> Igreja de Resgate — feito com amor.</small>
     </footer>
-  </main>
 
-  <script type="module" src="assets/app.js"></script>
-</body>
+    <script src="assets/app.js" defer></script>
+  </body>
 </html>
