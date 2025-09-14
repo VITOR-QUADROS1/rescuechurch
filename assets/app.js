@@ -145,22 +145,20 @@ function pageScroll(track, dir){
 }
 
 /* ---------- Modal de vídeo ---------- */
-const modal = $("#yt-modal");
-const iframe = $("#yt-iframe");
-const closeModalBtn = $(".modal-close");
+const modal = $("#ytModal");
+const iframe = $("#ytFrame");
+const closeModalBtn = $(".yt-close");
 
 function openModal(videoId){
   if(!modal || !iframe) return;
   iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
-  modal.classList.add("open");
-  modal.setAttribute("aria-hidden", "false");
+  modal.hidden = false;
   document.body.style.overflow = "hidden";
 }
 function closeModal(){
   if(!modal || !iframe) return;
   iframe.src = "";
-  modal.classList.remove("open");
-  modal.setAttribute("aria-hidden", "true");
+  modal.hidden = true;
   document.body.style.overflow = "";
 }
 modal?.addEventListener("click", (e)=>{ if(e.target === modal) closeModal(); });
