@@ -26,9 +26,9 @@
   <main class="container">
     <!-- HERO -->
     <section id="inicio" class="hero card">
-      <img src="assets/hero.jpg" alt="Rescue Church" class="hero-img cover">
-      <!-- QR no cantinho do hero -->
-      <a class="qr-fab" href="assets/qrcode.png" target="_blank" title="QR code">
+      <img src="assets/logo.png" alt="Rescue Church" class="hero-img">
+      <!-- QR no canto -->
+      <a class="qr-badge" href="assets/qrcode.png" target="_blank" title="QR code">
         <img src="assets/qrcode.png" alt="QR code">
       </a>
     </section>
@@ -69,22 +69,13 @@
         </div>
 
         <div class="shorts-col">
-          <h3>Curtos</h3>
-          <!-- wrapper criado via JS também, mas pode ficar explícito -->
-          <div class="carousel-wrap">
-            <button class="carousel-nav prev" data-target="#shorts" data-dir="prev" aria-label="Anterior">‹</button>
-            <div id="shorts" class="hscroll"></div>
-            <button class="carousel-nav next" data-target="#shorts" data-dir="next" aria-label="Próximo">›</button>
-          </div>
+          <h3>Curto­s</h3>
+          <div id="shorts" class="hscroll"></div>
         </div>
 
         <div class="full-col">
           <h3>Mensagens completas</h3>
-          <div class="carousel-wrap">
-            <button class="carousel-nav prev" data-target="#fulls" data-dir="prev" aria-label="Anterior">‹</button>
-            <div id="fulls" class="hscroll"></div>
-            <button class="carousel-nav next" data-target="#fulls" data-dir="next" aria-label="Próximo">›</button>
-          </div>
+          <div id="fulls" class="hscroll"></div>
         </div>
       </div>
     </section>
@@ -93,6 +84,15 @@
       <small>© <span id="yy"></span> Igreja de Resgate — feito com amor.</small>
     </footer>
   </main>
+
+  <!-- Modal Player -->
+  <div id="ytModal" class="modal" aria-hidden="true">
+    <div class="modal-card">
+      <button class="modal-close" aria-label="Fechar">✕</button>
+      <iframe id="ytModalFrame" width="100%" height="100%" frameborder="0"
+              allow="autoplay; encrypted-media" allowfullscreen></iframe>
+    </div>
+  </div>
 
   <script type="module" src="assets/app.js"></script>
 </body>
