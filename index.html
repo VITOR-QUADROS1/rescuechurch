@@ -30,9 +30,9 @@
 
   <main class="container">
     <section id="inicio" class="hero card">
-      <img src="assets/semeador.jpg" alt="Seja um Semeador - Rescue Church" class="hero-img cover">
-      <a class="qr-badge" href="assets/qrcode.jpg" target="_blank" rel="noopener" aria-label="Abrir QR code">
-        <img src="assets/qrcode.jpg" alt="QR code">
+      <img src="assets/cover.jpg" alt="Rescue Church" class="hero-img cover">
+      <a class="qr-badge" href="assets/qrcode.png" target="_blank" rel="noopener" aria-label="Abrir QR code">
+        <img src="assets/qrcode.png" alt="QR code">
       </a>
     </section>
 
@@ -71,14 +71,18 @@
         <div class="shorts-col">
           <h3>Curts</h3>
           <div class="carousel">
+            <button class="car-btn prev" data-target="#shorts" aria-label="Anterior">‹</button>
             <div id="shorts" class="hscroll"></div>
+            <button class="car-btn next" data-target="#shorts" aria-label="Próximo">›</button>
           </div>
         </div>
 
         <div class="full-col">
           <h3>Mensagens completas</h3>
           <div class="carousel">
+            <button class="car-btn prev" data-target="#fulls" aria-label="Anterior">‹</button>
             <div id="fulls" class="hscroll"></div>
+            <button class="car-btn next" data-target="#fulls" aria-label="Próximo">›</button>
           </div>
         </div>
       </div>
@@ -89,11 +93,11 @@
     </footer>
   </main>
 
-  <div id="yt-modal" class="yt-modal" hidden>
+  <div id="ytModal" class="yt-modal" hidden>
     <div class="yt-box">
-      <button class="modal-close" aria-label="Fechar">✕</button>
+      <button class="yt-close" aria-label="Fechar">✕</button>
       <div class="yt-player">
-        <iframe id="yt-iframe" src="" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+        <iframe id="ytFrame" src="" allow="autoplay; encrypted-media" allowfullscreen></iframe>
       </div>
     </div>
   </div>
