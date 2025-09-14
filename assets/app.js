@@ -96,7 +96,7 @@ async function fillPlaylist(pid, sel){
   const box=$(sel); if(!box||!pid) return;
   const j = await fetchJSON(api(`/youtube?playlist=${encodeURIComponent(pid)}&t=${Date.now()}`));
   box.innerHTML = (j?.items||[]).map(cardVideo).join("") || "<div class='muted' style='padding:8px'>Sem itens.</div>";
-  setupCarousel(box.parentElement); // Passar o elemento .carousel
+  setupCarousel(box);
 }
 async function loadLiveOrLatest(){
   const ch=CFG?.youtube?.channelId; if(!ch) return;
@@ -106,7 +106,7 @@ async function loadLiveOrLatest(){
   const items  = (latest?.items||[]).slice(0,18);
   if(list){
     list.innerHTML = items.map(cardVideo).join("") || "<div class='muted' style='padding:8px'>Sem vídeos recentes.</div>";
-    setupCarousel(list.parentElement); // Passar o elemento .carousel
+    setupCarousel(list);
   }
   const id = (live?.isLive && live?.id) ? live.id : (items[0]?.id || null);
   if(frame && id) frame.src = `https://www.youtube.com/embed/${id}?rel=0`;
@@ -114,16 +114,14 @@ async function loadLiveOrLatest(){
 }
 
 /* ---------- Carousel (paginado) ---------- */
-function setupCarousel(carouselEl){
-  const track = carouselEl.querySelector('.hscroll');
-  if(!track) return;
-  
+function setupCarousel(track){
   // cria setas apenas se houver overflow
-  const hasOverflow = track.scrollWidth > track.clientWidth;
+  const hasOverflow = track.scrollWidth > track.clientWidth + 4;
+  track.dataset.carousel = "1";
   if(!hasOverflow) return;
 
   // evita setas duplicadas
-  if(carouselEl.querySelector(".carousel-nav")) return;
+  if(track.querySelector(".carousel-nav")) return;
 
   const mkBtn = (dir) => {
     const b = document.createElement("button");
@@ -133,8 +131,8 @@ function setupCarousel(carouselEl){
     b.addEventListener("click", () => pageScroll(track, dir === "next" ? 1 : -1));
     return b;
   };
-  carouselEl.appendChild(mkBtn("prev"));
-  carouselEl.appendChild(mkBtn("next"));
+  track.appendChild(mkBtn("prev"));
+  track.appendChild(mkBtn("next"));
 }
 function cardWidth(track){
   const card = track.querySelector(".yt-card");
@@ -142,14 +140,14 @@ function cardWidth(track){
 }
 function pageScroll(track, dir){
   const cw = cardWidth(track);
-  const visible = Math.max(1, Math.round(track.clientWidth / cw));
+  const visible = Math.max(1, Math.round(track.clientWidth / cw)); // 3 (ou 2/1 no responsivo)
   track.scrollBy({ left: dir * visible * cw, behavior:"smooth" });
 }
 
 /* ---------- Modal de vídeo ---------- */
-const modal = $("#yt-modal");
-const iframe = $("#yt-iframe");
-const closeModalBtn = $(".modal-close");
+const modal = $("#ytModal");
+const iframe = $("#ytFrame");
+const closeModalBtn = $(".yt-close");
 
 function openModal(videoId){
   if(!modal || !iframe) return;
