@@ -60,7 +60,7 @@ h3 { margin-top: 24px; margin-bottom: 12px; font-size: 1.3rem; border-bottom: 1p
   height: 280px;
   padding: 0;
   overflow: hidden;
-  /* CAMINHO CORRIGIDO: como style.css e logo.png estão na mesma pasta, o caminho é direto */
+  /* CAMINHO CORRIGIDO: como style.css e logo.png estão na mesma pasta (assets), o caminho é direto */
   background-image: url('logo.png');
   background-size: contain;
   background-repeat: no-repeat;
