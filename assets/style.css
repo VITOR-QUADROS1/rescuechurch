@@ -9,7 +9,6 @@
   --ring: rgba(122,170,255,.25);
 }
 
-/* Reset básico */
 *{box-sizing:border-box}
 html,body{height:100%}
 body{
@@ -21,7 +20,7 @@ body{
 
 /* Topo */
 .topbar{
-  position:sticky; top:0; z-index:20;
+  position:sticky; top:0; z-index:10;
   display:flex; align-items:center; justify-content:space-between;
   padding:14px 22px; background:rgba(10,16,30,.6); backdrop-filter: blur(10px);
   border-bottom:1px solid rgba(255,255,255,.06);
@@ -45,24 +44,25 @@ body{
 .section-head{display:flex; align-items:center; justify-content:space-between}
 h2{margin:0 0 10px 0}
 
-/* Hero */
+/* Hero + QR */
 .hero{
-  position:relative;        /* necessário pro QR code */
+  position:relative;
   height:280px; display:flex; align-items:center; justify-content:center;
-  overflow:hidden; margin-top:6px;
+  overflow:hidden; margin-top:6px
 }
 .hero-img{width:100%; height:100%}
 .hero-img.cover{object-fit:cover}
-
-/* QR no hero (canto superior direito) */
-.hero-qr{
-  position:absolute; right:14px; top:14px; z-index:2;
-  display:block; width:110px; height:110px; border-radius:12px;
-  background:rgba(0,0,0,.25);
-  border:1px solid rgba(255,255,255,.12);
-  overflow:hidden;
+.qr-badge{
+  position:absolute; right:16px; top:16px;
+  width:140px; aspect-ratio:1;
+  padding:8px; border-radius:12px;
+  background:rgba(16,24,45,.65);
+  border:1px solid rgba(255,255,255,.10);
+  display:grid; place-items:center;
+  box-shadow:0 6px 18px rgba(0,0,0,.35);
 }
-.hero-qr img{width:100%; height:100%; object-fit:contain; display:block}
+.qr-badge:hover{background:rgba(16,24,45,.8)}
+.qr-badge img{width:100%; height:100%; object-fit:contain; border-radius:8px}
 
 /* Inputs */
 .input,.select{
@@ -80,7 +80,7 @@ h2{margin:0 0 10px 0}
 .hint,.muted{color:var(--muted)}
 .verse{font-size:1.15rem}
 
-/* Resultado */
+/* Result box */
 .result{
   min-height:160px;
   padding:14px; border-radius:12px; border:1px dashed rgba(255,255,255,.12);
@@ -88,82 +88,81 @@ h2{margin:0 0 10px 0}
   color:var(--text); font-family: inherit;
 }
 
-/* Vídeos */
+/* Vídeos – grid geral */
 .video-grid{display:grid; gap:18px}
 .live-col .player{
   width:100%; height:320px; border-radius:14px; overflow:hidden; background:#000;
   border:1px solid rgba(255,255,255,.06)
 }
 
-/* Carrossel horizontal */
-.hscroll{
-  --gap:14px; --vis:3;                 /* 3 visíveis no desktop */
+/* --- CARROSSEL --- */
+.carousel{
   position:relative;
-  display:flex; gap:var(--gap);
-  overflow-x:auto; padding:8px; border-radius:12px;
-  background:rgba(255,255,255,.02); border:1px solid rgba(255,255,255,.06);
-  scroll-snap-type:x mandatory; cursor:grab; scroll-behavior:smooth;
+  display:grid; grid-template-columns: 40px 1fr 40px; gap:8px; align-items:center;
 }
-.hscroll:active{cursor:grabbing}
+.hscroll{
+  display:flex; gap:14px; overflow-x:auto; padding:8px;
+  border-radius:12px; background:rgba(255,255,255,.02); border:1px solid rgba(255,255,255,.06);
+  scroll-snap-type: x mandatory; scroll-behavior:smooth;
+}
+.hscroll::-webkit-scrollbar{height:8px}
+.hscroll::-webkit-scrollbar-thumb{background:#202b48; border-radius:6px}
 
 /* Card de vídeo */
 .yt-card{
-  flex:0 0 calc((100% - (var(--vis) - 1)*var(--gap)) / var(--vis)); /* garante 3/2/1 por linha */
-  display:flex; align-items:center; gap:12px;
-  background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06);
-  border-radius:12px; overflow:hidden; text-decoration:none; color:var(--text);
-  scroll-snap-align:start; transition: transform .2s ease, border-color .2s ease;
+  min-width:360px; width:360px; scroll-snap-align:start;
+  display:flex; gap:12px; text-decoration:none; color:var(--text);
+  background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06); border-radius:12px; overflow:hidden;
+  transition: transform .15s ease, border-color .15s ease;
 }
-.yt-card:hover{transform:translateY(-2px); border-color:rgba(255,255,255,.1)}
-.yt-thumb{width:160px; height:100px; object-fit:cover; flex-shrink:0; display:block}
-.yt-info{display:flex; flex-direction:column; gap:6px; padding-right:10px}
-.yt-title{font-weight:600; font-size:.95rem; line-height:1.25rem;
-  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
-.yt-date{color:var(--muted); font-size:.85rem}
+.yt-card:hover{transform:translateY(-2px); border-color:rgba(255,255,255,.12)}
+.yt-card img{width:160px; height:100px; object-fit:cover; flex-shrink:0}
+.yt-info{display:flex; flex-direction:column; padding:10px; justify-content:center}
+.yt-title{font-weight:600; font-size:.96rem; line-height:1.25rem; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
+.yt-date{color:var(--muted); font-size:.85rem; margin-top:4px}
 
-/* Botões do carrossel (prev/next) */
-.carousel-nav{
-  position:absolute; top:50%; transform:translateY(-50%);
+/* botões do carrossel */
+.car-btn{
   width:36px; height:36px; border-radius:999px;
   border:1px solid rgba(255,255,255,.15);
   background: rgba(16,24,45,.6);
   color:#e9f0ff; display:grid; place-items:center; font-weight:700;
   cursor:pointer; user-select:none; backdrop-filter: blur(4px);
   outline:none; transition: transform .15s ease, background .15s ease, border-color .15s ease, opacity .15s;
-  z-index:3;
 }
-.carousel-nav:hover{ background: rgba(16,24,45,.75); border-color: rgba(255,255,255,.25); }
-.carousel-nav.prev{left:8px}
-.carousel-nav.next{right:8px}
+.car-btn:hover{ background: rgba(16,24,45,.75); border-color: rgba(255,255,255,.25); }
 
-/* Modal de vídeo */
-.modal{
-  position:fixed; inset:0; z-index:50;
-  display:none; align-items:center; justify-content:center;
-  background:rgba(0,0,0,.65);
+/* MODAL (vídeo flutuante) */
+.yt-modal[hidden]{display:none}
+.yt-modal{
+  position:fixed; inset:0; z-index:50; background:rgba(0,0,0,.6);
+  display:grid; place-items:center; padding:20px;
 }
-.modal.open{display:flex}
-.modal-dialog{
-  width:min(900px, 92vw);
-  aspect-ratio: 16 / 9;
-  background:#000; border-radius:14px; overflow:hidden;
-  box-shadow: 0 20px 60px rgba(0,0,0,.5);
-  position:relative;
+.yt-box{
+  width:min(900px, 92vw); background:#0e1730; border:1px solid rgba(255,255,255,.08);
+  border-radius:14px; box-shadow:0 20px 60px rgba(0,0,0,.5); padding:14px 14px 16px;
 }
-.modal-close{
-  position:absolute; top:8px; right:8px; z-index:2;
-  width:36px; height:36px; border-radius:999px; border:1px solid rgba(255,255,255,.25);
-  background:rgba(20,20,30,.6); color:#fff; cursor:pointer;
+.yt-player{position:relative; padding-top:56.25%; border-radius:10px; overflow:hidden}
+.yt-player iframe{position:absolute; inset:0; width:100%; height:100%; border:0}
+.yt-close{
+  position:absolute; right:10px; top:10px; background:transparent; color:#fff;
+  border:1px solid rgba(255,255,255,.25); border-radius:8px; padding:6px 10px; cursor:pointer
 }
-.modal-iframe{width:100%; height:100%; border:0}
 
-/* Loading */
+/* Estados */
 .is-loading{opacity:0.7; pointer-events:none}
 
+/* Footer */
+.footer{padding:30px 0 50px; text-align:center; color:var(--muted)}
+
 /* Responsivo */
+@media (max-width:1100px){
+  .yt-card{min-width:320px; width:320px}
+}
 @media (max-width:900px){
   .search-row{grid-template-columns:1fr 160px 120px}
-  .hscroll{--vis:2}
+  .yt-card{min-width:300px; width:300px}
+  .qr-badge{width:110px}
 }
 @media (max-width:700px){
   .container{padding:16px;}
@@ -172,11 +171,9 @@ h2{margin:0 0 10px 0}
   .select{width:100%}
   h2{font-size:1.4rem;}
   .verse{font-size:1.05rem;}
-  .hero{height:200px;}
+  .hero{height:220px;}
   .live-col .player{height:220px;}
-  .hscroll{--vis:1}
-  .yt-thumb{width:120px; height:80px;}
+  .yt-card{min-width:260px; width:260px}
+  .yt-card img{width:120px; height:80px}
+  .qr-badge{width:96px}
 }
-
-/* Rodapé */
-.footer{padding:30px 0 50px; text-align:center; color:var(--muted)}
