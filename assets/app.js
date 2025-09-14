@@ -1,4 +1,4 @@
-/* assets/app.js — RC v11 (PT-first + YT RSS + Carousel + Modal) */
+/* assets/app.js — v12 (New Design) */
 const $  = (q) => document.querySelector(q);
 const $$ = (q) => Array.from(document.querySelectorAll(q));
 
@@ -78,13 +78,15 @@ async function searchBible(){
 }
 
 /* ---------- YouTube (cards + live) ---------- */
+// **ATENÇÃO: A ESTRUTURA DO CARD DE VÍDEO FOI ALTERADA AQUI**
 const cardVideo = (v) => {
-  const thumb=v.thumb || `https://i.ytimg.com/vi/${v.id}/mqdefault.jpg`;
-  const title=(v.title||"").trim();
-  const date = v.published ? new Date(v.published).toLocaleDateString("pt-BR") : "";
+  const thumb = v.thumb || `https://i.ytimg.com/vi/${v.id}/mqdefault.jpg`;
+  const title = (v.title || "").trim();
+  const dateOptions = { year: 'numeric', month: '2-digit', day: '2-digit' };
+  const date = v.published ? new Date(v.published).toLocaleDateString("pt-BR", dateOptions) : "";
   return `
-    <a class="yt-card" href="https://www.youtube.com/watch?v=${v.id}" data-vid="${v.id}">
-      <img loading="lazy" class="yt-thumb" src="${thumb}" alt="">
+    <a class="yt-card" href="https://www.youtube.com/watch?v=${v.id}" data-vid="${v.id}" target="_blank" rel="noopener">
+      <img loading="lazy" class="yt-thumb" src="${thumb}" alt="Thumbnail do vídeo">
       <div class="yt-info">
         <div class="yt-title">${title}</div>
         <div class="yt-date">${date}</div>
@@ -92,12 +94,14 @@ const cardVideo = (v) => {
     </a>
   `;
 };
+
 async function fillPlaylist(pid, sel){
   const box=$(sel); if(!box||!pid) return;
   const j = await fetchJSON(api(`/youtube?playlist=${encodeURIComponent(pid)}&t=${Date.now()}`));
   box.innerHTML = (j?.items||[]).map(cardVideo).join("") || "<div class='muted' style='padding:8px'>Sem itens.</div>";
-  setupCarousel(box);
+  setupCarousel(box.parentElement); // Passa o elemento .carousel
 }
+
 async function loadLiveOrLatest(){
   const ch=CFG?.youtube?.channelId; if(!ch) return;
   const frame=$("#liveFrame"), list=$("#fulls");
@@ -106,42 +110,42 @@ async function loadLiveOrLatest(){
   const items  = (latest?.items||[]).slice(0,18);
   if(list){
     list.innerHTML = items.map(cardVideo).join("") || "<div class='muted' style='padding:8px'>Sem vídeos recentes.</div>";
-    setupCarousel(list);
+    setupCarousel(list.parentElement); // Passa o elemento .carousel
   }
   const id = (live?.isLive && live?.id) ? live.id : (items[0]?.id || null);
-  if(frame && id) frame.src = `https://www.youtube.com/embed/${id}?rel=0`;
+  if(frame && id) frame.src = `https://www.youtube.com/embed/${id}?rel=0&autoplay=1`;
   if(CFG?.youtube?.shortsPlaylist) await fillPlaylist(CFG.youtube.shortsPlaylist, "#shorts");
 }
 
 /* ---------- Carousel (paginado) ---------- */
-function setupCarousel(track){
-  // cria setas apenas se houver overflow
-  const hasOverflow = track.scrollWidth > track.clientWidth + 4;
-  track.dataset.carousel = "1";
-  if(!hasOverflow) return;
-
-  // evita setas duplicadas
-  if(track.querySelector(".carousel-nav")) return;
+function setupCarousel(carouselEl){
+  const track = carouselEl.querySelector('.hscroll');
+  if (!track) return;
+  // Verifica se há conteúdo suficiente para rolar
+  const hasOverflow = track.scrollWidth > track.clientWidth;
+  if (!hasOverflow) return;
+  
+  // Evita adicionar botões se já existirem
+  if(carouselEl.querySelector(".carousel-nav")) return;
 
   const mkBtn = (dir) => {
     const b = document.createElement("button");
     b.className = `carousel-nav ${dir}`;
     b.type = "button";
     b.textContent = dir === "next" ? "›" : "‹";
-    b.addEventListener("click", () => pageScroll(track, dir === "next" ? 1 : -1));
+    b.ariaLabel = dir === 'next' ? 'Próximo' : 'Anterior';
+    b.addEventListener("click", () => {
+      const card = track.querySelector('.yt-card');
+      if (card) {
+        // Calcula a quantidade de rolagem com base na largura do card + o espaçamento
+        const scrollAmount = card.offsetWidth + parseInt(getComputedStyle(track).gap);
+        track.scrollBy({ left: dir === 'next' ? scrollAmount : -scrollAmount, behavior: 'smooth' });
+      }
+    });
     return b;
   };
-  track.appendChild(mkBtn("prev"));
-  track.appendChild(mkBtn("next"));
-}
-function cardWidth(track){
-  const card = track.querySelector(".yt-card");
-  return card ? (card.getBoundingClientRect().width + parseFloat(getComputedStyle(track).gap||"14")) : Math.max(280, track.clientWidth/3);
-}
-function pageScroll(track, dir){
-  const cw = cardWidth(track);
-  const visible = Math.max(1, Math.round(track.clientWidth / cw)); // 3 (ou 2/1 no responsivo)
-  track.scrollBy({ left: dir * visible * cw, behavior:"smooth" });
+  carouselEl.appendChild(mkBtn("prev"));
+  carouselEl.appendChild(mkBtn("next"));
 }
 
 /* ---------- Modal de vídeo ---------- */
@@ -153,37 +157,45 @@ function openModal(videoId){
   if(!modal || !iframe) return;
   iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
   modal.hidden = false;
-  document.body.style.overflow = "hidden";
+  document.body.style.overflow = "hidden"; // Impede rolagem da página
 }
+
 function closeModal(){
   if(!modal || !iframe) return;
-  iframe.src = "";
+  iframe.src = ""; // Para o vídeo
   modal.hidden = true;
-  document.body.style.overflow = "";
+  document.body.style.overflow = ""; // Libera rolagem
 }
+
+// Listeners do Modal
 modal?.addEventListener("click", (e)=>{ if(e.target === modal) closeModal(); });
 closeModalBtn?.addEventListener("click", closeModal);
 window.addEventListener("keydown", (e)=>{ if(e.key === "Escape") closeModal(); });
 
-// Delegação: ouvir cliques nos cards para abrir modal
+// Delegação de evento: ouve cliques no documento para abrir o modal
 document.addEventListener("click", (e)=>{
-  const a = e.target.closest(".yt-card");
-  if(!a) return;
-  const vid = a.getAttribute("data-vid");
-  if(!vid) return;
+  const card = e.target.closest(".yt-card");
+  if(!card || !card.dataset.vid) return; // Se não for um card de vídeo, ignora
   e.preventDefault();
-  openModal(vid);
+  openModal(card.dataset.vid);
 });
 
-/* ---------- Boot ---------- */
+/* ---------- Boot (Inicialização) ---------- */
 function wire(){
   $("#btn-buscar")?.addEventListener("click", searchBible);
   $("#biblia-q")?.addEventListener("keydown", (e)=>{ if(e.key==="Enter") searchBible(); });
   $("#btn-copy")?.addEventListener("click", async ()=>{
-    try{ const t=($("#vday-text")?.textContent||"").trim(); if(t) await navigator.clipboard.writeText(t); }catch(_){}
+    // Agora copia o versículo E a referência
+    const textToCopy = ($("#vday-text")?.textContent||"").trim() + "\n" + ($("#vday-ref")?.textContent||"").trim();
+    try{ 
+      if(textToCopy) await navigator.clipboard.writeText(textToCopy); 
+    } catch(err){
+      console.error("Falha ao copiar: ", err);
+    }
   });
   $("#yy") && ($("#yy").textContent = new Date().getFullYear());
 }
+
 (async function boot(){
   wire();
   await loadCfg();
