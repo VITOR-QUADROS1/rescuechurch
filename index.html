@@ -26,10 +26,13 @@
   <main class="container">
     <!-- HERO -->
     <section id="inicio" class="hero card">
-      <img src="assets/logo.png" alt="Rescue Church" class="hero-img">
-      <!-- QR no canto -->
-      <a class="qr-badge" href="assets/qrcode.png" target="_blank" title="QR code">
-        <img src="assets/qrcode.png" alt="QR code">
+      <img src="assets/logo.png" alt="Rescue Church" class="hero-img cover">
+
+      <!-- QR code no canto -->
+      <a class="hero-qr" href="assets/qrcode.png" target="_blank" rel="noopener">
+        <img src="assets/qrcode.png"
+             alt="QR code"
+             onerror="this.onerror=null; this.src='assets/qrcode.jpg'; this.closest('a').href=this.src;">
       </a>
     </section>
 
@@ -63,13 +66,14 @@
         <div class="live-col">
           <h3>Ao vivo</h3>
           <div class="player">
-            <iframe id="liveFrame" width="100%" height="100%" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+            <iframe id="liveFrame" width="100%" height="100%" frameborder="0"
+                    allow="autoplay; encrypted-media" allowfullscreen></iframe>
           </div>
           <p class="muted">Se estiver ao vivo, aparece aqui. Caso contrário, mostra o último vídeo.</p>
         </div>
 
         <div class="shorts-col">
-          <h3>Curto­s</h3>
+          <h3>Curtos</h3>
           <div id="shorts" class="hscroll"></div>
         </div>
 
@@ -85,12 +89,12 @@
     </footer>
   </main>
 
-  <!-- Modal Player -->
-  <div id="ytModal" class="modal" aria-hidden="true">
-    <div class="modal-card">
-      <button class="modal-close" aria-label="Fechar">✕</button>
-      <iframe id="ytModalFrame" width="100%" height="100%" frameborder="0"
-              allow="autoplay; encrypted-media" allowfullscreen></iframe>
+  <!-- Modal de vídeo -->
+  <div id="yt-modal" class="modal" aria-hidden="true">
+    <div class="modal-dialog" role="dialog" aria-modal="true" aria-label="Player YouTube">
+      <button class="modal-close" type="button" aria-label="Fechar">✕</button>
+      <iframe id="yt-iframe" class="modal-iframe"
+              src="" allow="autoplay; encrypted-media" allowfullscreen></iframe>
     </div>
   </div>
 
