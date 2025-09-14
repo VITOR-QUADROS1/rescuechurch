@@ -49,21 +49,14 @@ h2{margin:0 0 10px 0}
   height:280px; display:flex; align-items:center; justify-content:center;
   overflow:hidden; margin-top:6px
 }
-/* regra base */
 .hero-img{
   width:100%; height:100%;
   object-fit:cover;
+  opacity:0.25; /* deixa o logo suave de fundo */
 }
-/* quando quisermos ver a arte inteira do logo */
-.hero-img.contain{
-  object-fit:contain;   /* mostra 100% do logo sem cortar */
-  opacity:1;            /* totalmente visível */
-}
-/* QR maior no desktop */
 .qr-badge{
   position:absolute; right:16px; top:16px;
-  width:170px;            /* aumentado */
-  aspect-ratio:1;
+  width:140px; aspect-ratio:1;
   padding:8px; border-radius:12px;
   background:rgba(16,24,45,.65);
   border:1px solid rgba(255,255,255,.10);
@@ -171,7 +164,7 @@ h2{margin:0 0 10px 0}
 @media (max-width:900px){
   .search-row{grid-template-columns:1fr 160px 120px}
   .yt-card{min-width:300px; width:300px}
-  .qr-badge{width:132px} /* um pouco maior que antes, porém menor que no desktop */
+  .qr-badge{width:110px}
 }
 @media (max-width:700px){
   .container{padding:16px;}
@@ -183,17 +176,5 @@ h2{margin:0 0 10px 0}
   .live-col .player{height:220px;}
   .yt-card{min-width:260px; width:260px}
   .yt-card img{width:120px; height:80px}
-  .qr-badge{width:110px}
-}
-
-/* Cabeçalho: marca + QR opcional */
-.brand-link { text-decoration:none; color:var(--text); display:flex; align-items:center; }
-.topbar { display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:20px; }
-.menu { justify-self:center; }
-.header-qr-code img { width:28px; height:28px; display:block; border-radius:4px; }
-
-@media (max-width:700px){
-  .topbar{ grid-template-columns:1fr auto; justify-content:space-between; gap:10px; }
-  .menu{ grid-row:2; grid-column:1 / span 2; justify-self:start; padding-top:10px; }
-  .header-qr-code{ justify-self:end; }
+  .qr-badge{width:96px}
 }
