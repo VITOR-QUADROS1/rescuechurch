@@ -1,4 +1,4 @@
-/* assets/app.js — RC v11 (carousel 3x, modal YouTube, hero QR, Bible PT failsafe) */
+/* assets/app.js — RC v11 (PT-first + YT RSS + Carousel + Modal) */
 const $  = (q) => document.querySelector(q);
 const $$ = (q) => Array.from(document.querySelectorAll(q));
 
@@ -25,19 +25,21 @@ async function translatePT(s){
     return (j?.text||"").trim() || s;
   }catch(_){ return s; }
 }
+async function fetchJSON(url){
+  try{ const r=await fetch(url); return r.ok ? await r.json() : null; }catch(_){ return null; }
+}
 
 /* ---------- Versículo do dia ---------- */
 async function loadVDay(){
   const txt=$("#vday-text"), ref=$("#vday-ref");
   if(!txt||!ref) return;
   txt.textContent="Carregando…"; ref.textContent="";
-
   try{
     const r = await fetch(api(`/verse-of-day?lang=pt&t=${Date.now()}`));
     const j = r.ok ? await r.json() : null;
     if(j?.text){
       let out = j.text.trim();
-      if(looksEN(out)) out = await translatePT(out);
+      if(looksEN(out)) out = await translatePT(out); // extra failsafe
       txt.textContent = out;
       ref.textContent = `${j.ref||""} — ${j.version||"NVI"}`;
     }else{
@@ -75,101 +77,105 @@ async function searchBible(){
   }finally{ btn && btn.classList.remove("is-loading"); }
 }
 
-/* ---------- YouTube ---------- */
-function cardVideo(v){
+/* ---------- YouTube (cards + live) ---------- */
+const cardVideo = (v) => {
   const thumb=v.thumb || `https://i.ytimg.com/vi/${v.id}/mqdefault.jpg`;
   const title=(v.title||"").trim();
   const date = v.published ? new Date(v.published).toLocaleDateString("pt-BR") : "";
-  // href é fallback; usamos data-vid para abrir modal
   return `
-    <a class="yt-card" data-vid="${v.id}" href="https://www.youtube.com/watch?v=${v.id}" rel="noopener">
-      <img loading="lazy" class="thumb" src="${thumb}" alt="">
+    <a class="yt-card" href="https://www.youtube.com/watch?v=${v.id}" data-vid="${v.id}">
+      <img loading="lazy" class="yt-thumb" src="${thumb}" alt="">
       <div class="yt-info">
         <div class="yt-title">${title}</div>
         <div class="yt-date">${date}</div>
       </div>
     </a>
   `;
-}
-async function fetchJSON(url){ try{ const r=await fetch(url); return r.ok ? await r.json() : null; }catch(_){ return null; } }
-
+};
 async function fillPlaylist(pid, sel){
-  const track=$(sel); if(!track||!pid) return;
+  const box=$(sel); if(!box||!pid) return;
   const j = await fetchJSON(api(`/youtube?playlist=${encodeURIComponent(pid)}&t=${Date.now()}`));
-  track.innerHTML = (j?.items||[]).map(cardVideo).join("") || "<div class='muted'>Sem itens.</div>";
+  box.innerHTML = (j?.items||[]).map(cardVideo).join("") || "<div class='muted' style='padding:8px'>Sem itens.</div>";
+  setupCarousel(box);
 }
-
 async function loadLiveOrLatest(){
   const ch=CFG?.youtube?.channelId; if(!ch) return;
-  const frame=$("#liveFrame"), fullTrack=$("#fulls");
+  const frame=$("#liveFrame"), list=$("#fulls");
   const live   = await fetchJSON(api(`/youtube/live?channel=${encodeURIComponent(ch)}&t=${Date.now()}`));
   const latest = await fetchJSON(api(`/youtube?channel=${encodeURIComponent(ch)}&t=${Date.now()}`));
   const items  = (latest?.items||[]).slice(0,18);
-  if(fullTrack) fullTrack.innerHTML = items.map(cardVideo).join("") || "<div class='muted'>Sem vídeos recentes.</div>";
-
+  if(list){
+    list.innerHTML = items.map(cardVideo).join("") || "<div class='muted' style='padding:8px'>Sem vídeos recentes.</div>";
+    setupCarousel(list);
+  }
   const id = (live?.isLive && live?.id) ? live.id : (items[0]?.id || null);
-  if(frame && id) frame.src = `https://www.youtube.com/embed/${id}`;
-
+  if(frame && id) frame.src = `https://www.youtube.com/embed/${id}?rel=0`;
   if(CFG?.youtube?.shortsPlaylist) await fillPlaylist(CFG.youtube.shortsPlaylist, "#shorts");
-
-  // ativa carrosséis e modal após preencher
-  initCarousels();
-  bindModal();
 }
 
-/* ---------- Carousel (3 por vez) ---------- */
-function updateArrowState(row, prevBtn, nextBtn){
-  const max = row.scrollWidth - row.clientWidth - 1;
-  prevBtn.disabled = row.scrollLeft <= 0;
-  nextBtn.disabled = row.scrollLeft >= max;
+/* ---------- Carousel (paginado) ---------- */
+function setupCarousel(track){
+  // cria setas apenas se houver overflow
+  const hasOverflow = track.scrollWidth > track.clientWidth + 4;
+  track.dataset.carousel = "1";
+  if(!hasOverflow) return;
+
+  // evita setas duplicadas
+  if(track.querySelector(".carousel-nav")) return;
+
+  const mkBtn = (dir) => {
+    const b = document.createElement("button");
+    b.className = `carousel-nav ${dir}`;
+    b.type = "button";
+    b.textContent = dir === "next" ? "›" : "‹";
+    b.addEventListener("click", () => pageScroll(track, dir === "next" ? 1 : -1));
+    return b;
+  };
+  track.appendChild(mkBtn("prev"));
+  track.appendChild(mkBtn("next"));
 }
-function initCarousels(){
-  $$(".yt-row").forEach(wrapper=>{
-    const row  = wrapper.querySelector(".yt-track");
-    const prev = wrapper.querySelector(".car-btn.prev");
-    const next = wrapper.querySelector(".car-btn.next");
-    if(!row||!prev||!next) return;
-
-    const step = () => row.clientWidth; // rola de 3 em 3 (uma “página”)
-    prev.onclick = ()=> row.scrollBy({ left: -step(), behavior:"smooth" });
-    next.onclick = ()=> row.scrollBy({ left: +step(), behavior:"smooth" });
-
-    const onScroll = ()=> updateArrowState(row, prev, next);
-    row.addEventListener("scroll", onScroll, { passive:true });
-    window.addEventListener("resize", onScroll);
-    onScroll(); // estado inicial
-  });
+function cardWidth(track){
+  const card = track.querySelector(".yt-card");
+  return card ? (card.getBoundingClientRect().width + parseFloat(getComputedStyle(track).gap||"14")) : Math.max(280, track.clientWidth/3);
+}
+function pageScroll(track, dir){
+  const cw = cardWidth(track);
+  const visible = Math.max(1, Math.round(track.clientWidth / cw)); // 3 (ou 2/1 no responsivo)
+  track.scrollBy({ left: dir * visible * cw, behavior:"smooth" });
 }
 
-/* ---------- Modal YouTube ---------- */
-function bindModal(){
-  const modal=$("#ytModal"), iframe=$("#ytFrame"), close=$("#ytClose");
-  if(!modal||!iframe||!close) return;
+/* ---------- Modal de vídeo ---------- */
+const modal = $("#yt-modal");
+const iframe = $("#yt-iframe");
+const closeModalBtn = $(".modal-close");
 
-  function open(vid){
-    iframe.src = `https://www.youtube.com/embed/${vid}?autoplay=1`;
-    modal.classList.add("on");
-    modal.setAttribute("aria-hidden","false");
-  }
-  function closeModal(){
-    modal.classList.remove("on");
-    modal.setAttribute("aria-hidden","true");
-    iframe.src = ""; // limpa pra parar o áudio
-  }
-
-  // cards abrem modal
-  $$(".yt-card").forEach(a=>{
-    a.addEventListener("click",(e)=>{
-      e.preventDefault();
-      const vid = a.getAttribute("data-vid");
-      if(vid) open(vid);
-    });
-  });
-
-  close.addEventListener("click", closeModal);
-  modal.addEventListener("click", (e)=>{ if(e.target === modal) closeModal(); });
-  window.addEventListener("keydown", (e)=>{ if(e.key==="Escape") closeModal(); });
+function openModal(videoId){
+  if(!modal || !iframe) return;
+  iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
+  modal.classList.add("open");
+  modal.setAttribute("aria-hidden", "false");
+  document.body.style.overflow = "hidden";
 }
+function closeModal(){
+  if(!modal || !iframe) return;
+  iframe.src = "";
+  modal.classList.remove("open");
+  modal.setAttribute("aria-hidden", "true");
+  document.body.style.overflow = "";
+}
+modal?.addEventListener("click", (e)=>{ if(e.target === modal) closeModal(); });
+closeModalBtn?.addEventListener("click", closeModal);
+window.addEventListener("keydown", (e)=>{ if(e.key === "Escape") closeModal(); });
+
+// Delegação: ouvir cliques nos cards para abrir modal
+document.addEventListener("click", (e)=>{
+  const a = e.target.closest(".yt-card");
+  if(!a) return;
+  const vid = a.getAttribute("data-vid");
+  if(!vid) return;
+  e.preventDefault();
+  openModal(vid);
+});
 
 /* ---------- Boot ---------- */
 function wire(){
