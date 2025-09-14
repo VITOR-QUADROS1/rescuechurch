@@ -1,4 +1,4 @@
-/* assets/app.js — RC v11 (PT-first + YT + Carousel autônomo + Bible PT failsafe) */
+/* assets/app.js — RC v12 (fix setas inline no carrossel) */
 const $  = (q) => document.querySelector(q);
 const $$ = (q) => Array.from(document.querySelectorAll(q));
 
@@ -39,7 +39,7 @@ async function loadVDay(){
     const j = r.ok ? await r.json() : null;
     if(j?.text){
       let out = j.text.trim();
-      if(looksEN(out)) out = await translatePT(out);            // ✅ failsafe extra no front
+      if(looksEN(out)) out = await translatePT(out);
       txt.textContent = out;
       ref.textContent = `${j.ref||""} — ${j.version||"NVI"}`;
     }else{
@@ -74,7 +74,7 @@ async function searchBible(){
     const url = api(`/biblia/bible/content/${encodeURIComponent(ver)}.txt?passage=${encodeURIComponent(q)}&lang=pt&t=${Date.now()}`);
     const r   = await fetch(url);
     let txt   = r.ok ? (await r.text()) : "";
-    if(looksEN(txt)) txt = await translatePT(txt);              // ✅ garante PT-BR na saída
+    if(looksEN(txt)) txt = await translatePT(txt);
     out.value = (txt||"").trim() || "Nenhum resultado encontrado.";
   }catch(e){
     out.value="Erro ao buscar. Ex.: João 3:16";
@@ -86,7 +86,7 @@ function cardVideo(v){
   const thumb=v.thumb || `https://i.ytimg.com/vi/${v.id}/mqdefault.jpg`;
   const title=(v.title||"").trim();
   const date = v.published ? new Date(v.published).toLocaleDateString("pt-BR") : "";
-  // ✅ Usa teu CSS (.hitem / .hthumb / .hmeta)
+  // Usa teu layout (.hitem / .hthumb / .hmeta)
   return `
     <a class="hitem" target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=${v.id}">
       <img class="hthumb" loading="lazy" src="${thumb}" alt="">
@@ -103,7 +103,7 @@ async function fetchJSON(url){
 function renderHScroll(sel, items){
   const box=$(sel); if(!box) return;
   box.innerHTML = items.length ? items.map(cardVideo).join("") : "<div class='muted' style='padding:8px;'>Sem itens.</div>";
-  setupCarousel(box);                                           // ✅ ativa carrossel na faixa
+  setupCarousel(box); // ativa carrossel na faixa
 }
 async function fillPlaylist(pid, sel){
   if(!pid) return renderHScroll(sel, []);
@@ -127,41 +127,51 @@ async function loadLiveOrLatest(){
   else renderHScroll("#shorts", []);
 }
 
-/* ---------- Carousel (auto-setas, 3+ por vez) ---------- */
+/* ---------- Carousel (setas inline, 3+ por vez) ---------- */
 function setupCarousel(scroller){
   if (!scroller || scroller._hasCarousel) return;
   scroller._hasCarousel = true;
 
-  // Mostrar gradientes laterais quando houver rolagem
-  const toggleScrollable = () => {
-    const canScroll = scroller.scrollWidth > scroller.clientWidth + 4;
-    scroller.classList.toggle('is-scrollable', canScroll);
+  // Garante base para posicionamento das setas SEM mexer no CSS
+  const cs = getComputedStyle(scroller).position;
+  if (cs === 'static') scroller.style.position = 'relative';
+
+  // Botões (com estilo inline para não depender do CSS)
+  const makeBtn = (dir) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.setAttribute('aria-label', dir === 'prev' ? 'Anterior' : 'Próximo');
+    b.textContent = dir === 'prev' ? '‹' : '›';
+    b.style.cssText = [
+      'position:absolute','top:50%','transform:translateY(-50%)',
+      dir==='prev' ? 'left:6px' : 'right:6px',
+      'width:38px','height:38px','border-radius:999px',
+      'border:1px solid rgba(255,255,255,.25)',
+      'background:linear-gradient(135deg, rgba(106,163,255,.9), rgba(155,107,255,.9))',
+      'color:#fff','font-size:22px','line-height:1','display:flex',
+      'align-items:center','justify-content:center','cursor:pointer',
+      'box-shadow:0 4px 18px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.15)',
+      'backdrop-filter: blur(6px)','z-index:2','user-select:none'
+    ].join(';');
+    b.addEventListener('mouseenter', ()=>{ b.style.transform='translateY(-50%) scale(1.04)'; });
+    b.addEventListener('mouseleave', ()=>{ b.style.transform='translateY(-50%)'; });
+    return b;
   };
-  new ResizeObserver(toggleScrollable).observe(scroller);
-  toggleScrollable();
-
-  const prev = document.createElement('button');
-  prev.className = 'carousel-nav prev';
-  prev.setAttribute('aria-label','Anterior');
-  prev.textContent = '‹';
-
-  const next = document.createElement('button');
-  next.className = 'carousel-nav next';
-  next.setAttribute('aria-label','Próximo');
-  next.textContent = '›';
-
+  const prev = makeBtn('prev');
+  const next = makeBtn('next');
   scroller.append(prev, next);
 
-  const getStep = () => {
-    const card = scroller.querySelector('.hitem');
-    const gap = parseFloat(getComputedStyle(scroller).gap || 12);
-    return card ? Math.round(card.getBoundingClientRect().width + gap) : Math.round(scroller.clientWidth * 0.9);
+  const gap = () => parseFloat(getComputedStyle(scroller).gap || 12);
+  const cardW = () => {
+    const c = scroller.querySelector('.hitem');
+    return c ? c.getBoundingClientRect().width + gap() : Math.max(280, scroller.clientWidth/3);
   };
+  const step = () => Math.max(cardW(), Math.round(scroller.clientWidth * 0.9)); // ~3 cards
 
-  prev.addEventListener('click', () => scroller.scrollBy({ left: -getStep(), behavior: 'smooth' }));
-  next.addEventListener('click', () => scroller.scrollBy({ left:  getStep(), behavior: 'smooth' }));
+  prev.addEventListener('click', () => scroller.scrollBy({ left: -step(), behavior: 'smooth' }));
+  next.addEventListener('click', () => scroller.scrollBy({ left:  step(), behavior: 'smooth' }));
 
-  // Scroll vertical do mouse → horizontal (desktop)
+  // Roda com roda do mouse (vertical → horizontal)
   scroller.addEventListener('wheel', (e) => {
     if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
       scroller.scrollBy({ left: e.deltaY, behavior: 'smooth' });
