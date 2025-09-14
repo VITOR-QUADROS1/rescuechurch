@@ -1,4 +1,4 @@
-/* assets/app.js — RC v11 (carrossel paginado 3x + loop + QR no hero) */
+/* RC front — PT-first + YT RSS + Carousel + Modal */
 const $  = (q) => document.querySelector(q);
 const $$ = (q) => Array.from(document.querySelectorAll(q));
 
@@ -25,18 +25,20 @@ async function translatePT(s){
     return (j?.text||"").trim() || s;
   }catch(_){ return s; }
 }
+function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
 
 /* ---------- Versículo do dia ---------- */
 async function loadVDay(){
   const txt=$("#vday-text"), ref=$("#vday-ref");
   if(!txt||!ref) return;
   txt.textContent="Carregando…"; ref.textContent="";
+
   try{
     const r = await fetch(api(`/verse-of-day?lang=pt&t=${Date.now()}`));
     const j = r.ok ? await r.json() : null;
     if(j?.text){
       let out = j.text.trim();
-      if(looksEN(out)) out = await translatePT(out);
+      if(looksEN(out)) out = await translatePT(out);  // failsafe extra
       txt.textContent = out;
       ref.textContent = `${j.ref||""} — ${j.version||"NVI"}`;
     }else{
@@ -69,7 +71,7 @@ async function searchBible(){
     let txt   = r.ok ? (await r.text()) : "";
     if(looksEN(txt)) txt = await translatePT(txt);
     out.value = (txt||"").trim() || "Nenhum resultado encontrado.";
-  }catch(_){
+  }catch(e){
     out.value="Erro ao buscar. Ex.: João 3:16";
   }finally{ btn && btn.classList.remove("is-loading"); }
 }
@@ -80,7 +82,7 @@ function cardVideo(v){
   const title=(v.title||"").trim();
   const date = v.published ? new Date(v.published).toLocaleDateString("pt-BR") : "";
   return `
-    <a class="yt-card" target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=${v.id}">
+    <a class="yt-card" data-vid="${v.id}" href="https://www.youtube.com/watch?v=${v.id}">
       <img loading="lazy" src="${thumb}" alt="">
       <div class="yt-info">
         <div class="yt-title">${title}</div>
@@ -96,7 +98,7 @@ async function fillPlaylist(pid, sel){
   const box=$(sel); if(!box||!pid) return;
   const j = await fetchJSON(api(`/youtube?playlist=${encodeURIComponent(pid)}&t=${Date.now()}`));
   box.innerHTML = (j?.items||[]).map(cardVideo).join("") || "<div class='muted'>Sem itens.</div>";
-  markScrollable(box);
+  setupCarousel(box);
 }
 async function loadLiveOrLatest(){
   const ch=CFG?.youtube?.channelId; if(!ch) return;
@@ -104,66 +106,78 @@ async function loadLiveOrLatest(){
   const live   = await fetchJSON(api(`/youtube/live?channel=${encodeURIComponent(ch)}&t=${Date.now()}`));
   const latest = await fetchJSON(api(`/youtube?channel=${encodeURIComponent(ch)}&t=${Date.now()}`));
   const items  = (latest?.items||[]).slice(0,18);
-  if(list) list.innerHTML = items.map(cardVideo).join("") || "<div class='muted'>Sem vídeos recentes.</div>";
-  markScrollable(list);
+  if(list) { list.innerHTML = items.map(cardVideo).join("") || "<div class='muted'>Sem vídeos recentes.</div>"; setupCarousel(list); }
+
   const id = (live?.isLive && live?.id) ? live.id : (items[0]?.id || null);
   if(frame && id) frame.src = `https://www.youtube.com/embed/${id}`;
-  if(CFG?.youtube?.shortsPlaylist) { await fillPlaylist(CFG.youtube.shortsPlaylist, "#shorts"); }
-  initCarouselPaged("#shorts");
-  initCarouselPaged("#fulls");
+
+  if(CFG?.youtube?.shortsPlaylist) await fillPlaylist(CFG.youtube.shortsPlaylist, "#shorts");
 }
 
-/* ---------- Carrossel paginado (3 por vez) + loop ---------- */
-function markScrollable(track){
-  if(!track) return;
-  const upd=()=>track.classList.toggle("is-scrollable", track.scrollWidth > track.clientWidth + 10);
-  upd();
-  new ResizeObserver(upd).observe(track);
+/* ---------- Carousel (3 por vez) ---------- */
+function setupCarousel(track){
+  // evita duplicar
+  track.querySelectorAll(".carousel-nav").forEach(n=>n.remove());
+
+  const prev = document.createElement("button");
+  prev.className = "carousel-nav prev"; prev.type="button"; prev.innerHTML = "‹";
+  const next = document.createElement("button");
+  next.className = "carousel-nav next"; next.type="button"; next.innerHTML = "›";
+  track.appendChild(prev); track.appendChild(next);
+
+  const getCardWidth = () => {
+    const c = track.querySelector(".yt-card");
+    if (!c) return 340 + 14; // largura + gap
+    const r = c.getBoundingClientRect();
+    return r.width + 14; // gap de 14px no CSS
+  };
+
+  const page = () => Math.max(1, Math.round(track.clientWidth / getCardWidth()));
+  const maxScroll = () => (track.scrollWidth - track.clientWidth);
+
+  prev.addEventListener("click", ()=>{
+    track.scrollTo({ left: clamp(track.scrollLeft - page()*getCardWidth(), 0, maxScroll()), behavior:"smooth" });
+  });
+  next.addEventListener("click", ()=>{
+    track.scrollTo({ left: clamp(track.scrollLeft + page()*getCardWidth(), 0, maxScroll()), behavior:"smooth" });
+  });
+
+  const syncBtns = ()=>{
+    const m = maxScroll();
+    prev.toggleAttribute("disabled", track.scrollLeft <= 0);
+    next.toggleAttribute("disabled", track.scrollLeft >= m - 1);
+  };
+  track.addEventListener("scroll", syncBtns, { passive:true });
+  window.addEventListener("resize", syncBtns);
+  setTimeout(syncBtns, 50);
+
+  // abrir modal ao clicar
+  track.querySelectorAll(".yt-card").forEach(a=>{
+    a.addEventListener("click",(ev)=>{
+      ev.preventDefault();
+      openModal(a.getAttribute("data-vid"));
+    });
+  });
 }
 
-function cardsPerView(track){
-  const card = track.querySelector(".yt-card");
-  if(!card) return 3;
-  const cardW = card.getBoundingClientRect().width + 12;
-  return Math.max(1, Math.round(track.clientWidth / cardW));
+/* ---------- Modal YouTube ---------- */
+const modal = $("#ytModal");
+const modalFrame = $("#ytModalFrame");
+function openModal(id){
+  if(!modal || !modalFrame) return;
+  modal.classList.add("open");
+  modal.setAttribute("aria-hidden","false");
+  modalFrame.src = `https://www.youtube.com/embed/${id}?autoplay=1`;
 }
-
-function pageWidth(track){
-  const card = track.querySelector(".yt-card");
-  if(!card) return track.clientWidth;
-  const cardW = card.getBoundingClientRect().width + 12;
-  const n = cardsPerView(track);
-  return n * cardW;
+function closeModal(){
+  if(!modal || !modalFrame) return;
+  modal.classList.remove("open");
+  modal.setAttribute("aria-hidden","true");
+  modalFrame.src = ""; // para parar o vídeo
 }
-
-function initCarouselPaged(selector){
-  const track = $(selector);
-  if(!track) return;
-
-  // botão explícito no HTML
-  const wrap = track.closest(".carousel-wrap");
-  const prev = wrap?.querySelector(`.carousel-nav.prev[data-target="${selector}"]`);
-  const next = wrap?.querySelector(`.carousel-nav.next[data-target="${selector}"]`);
-
-  if(prev && next){
-    const go = (dir)=>{
-      const max = track.scrollWidth - track.clientWidth;
-      let target = track.scrollLeft + (dir>0 ? pageWidth(track) : -pageWidth(track));
-      // loop suave
-      if(target < 0) target = max;
-      if(target > max) target = 0;
-      track.scrollTo({ left: target, behavior:"smooth" });
-    };
-    prev.onclick = ()=>go(-1);
-    next.onclick = ()=>go(1);
-  }
-
-  // também habilita rolagem por arraste em dispositivos apontadores
-  let isDown=false, startX=0, startLeft=0;
-  track.addEventListener("pointerdown",(e)=>{ isDown=true; startX=e.clientX; startLeft=track.scrollLeft; track.setPointerCapture(e.pointerId); });
-  track.addEventListener("pointermove",(e)=>{ if(isDown){ track.scrollLeft = startLeft - (e.clientX - startX); }});
-  track.addEventListener("pointerup",()=>{ isDown=false; });
-}
+$(".modal-close")?.addEventListener("click", closeModal);
+modal?.addEventListener("click", (e)=>{ if(e.target === modal) closeModal(); });
+document.addEventListener("keydown", (e)=>{ if(e.key === "Escape") closeModal(); });
 
 /* ---------- Boot ---------- */
 function wire(){
@@ -172,7 +186,7 @@ function wire(){
   $("#btn-copy")?.addEventListener("click", async ()=>{
     try{ const t=($("#vday-text")?.textContent||"").trim(); if(t) await navigator.clipboard.writeText(t); }catch(_){}
   });
-  const y=$("#yy"); if(y) y.textContent=new Date().getFullYear();
+  $("#yy") && ($("#yy").textContent = new Date().getFullYear());
 }
 (async function boot(){
   wire();
