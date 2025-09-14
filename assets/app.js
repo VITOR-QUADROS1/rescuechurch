@@ -1,162 +1,179 @@
-/* assets/app.js — v7-fix4 (leve) */
+/* assets/app.js — RC v8 (PT-first + YouTube RSS fallback) */
 const $  = (q) => document.querySelector(q);
 const $$ = (q) => Array.from(document.querySelectorAll(q));
 
-/* ------------ Utils ------------ */
+const CFG = { proxy:{workerBase:"/api"}, biblia:{}, youtube:{} };
+
+/* --------- boot config (não quebra se falhar) ---------- */
+async function loadCfg(){
+  try{
+    const r = await fetch("assets/config.json", {cache:"no-store"});
+    if(r.ok){ Object.assign(CFG, await r.json()); }
+  }catch(e){ console.warn("config.json falhou, usando defaults:", e); }
+}
+
+function api(path){ 
+  const base = (CFG?.proxy?.workerBase || "/api").replace(/\/$/,""); 
+  return `${base}${path.startsWith("/")?path:`/${path}`}`;
+}
+
+/* -------------------- Utils -------------------- */
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-function setLoading(el, on=true){ el?.classList.toggle("is-loading", !!on); }
+function setLoading(el, on=true){ if(!el) return; el.classList.toggle("is-loading", !!on); }
 function isEN(t){
   const s = ` ${String(t||"")} `.toLowerCase();
-  const hits = [" the "," and "," lord "," god "," you "," your "," shall "," for "," now "].filter(w => s.includes(w));
-  return hits.length >= 2;
+  return [" the "," and "," lord "," god "," you "," your "," shall "," now "," for "].some(w=>s.includes(w));
 }
-async function fetchWithTimeout(url, opts={}, ms=10000, retries=0){
-  let lastErr;
-  for(let i=0;i<=retries;i++){
-    const ctrl = new AbortController();
-    const id   = setTimeout(()=>ctrl.abort(), ms);
-    try{
-      const r = await fetch(url, {...opts, signal: ctrl.signal});
-      clearTimeout(id);
-      if (r.ok) return r;
-      lastErr = new Error(`HTTP ${r.status}`);
-    }catch(e){ lastErr = e; clearTimeout(id); }
-    if (i < retries) await sleep(150);
-  }
-  throw lastErr || new Error(`Timeout/erro: ${url}`);
-}
-async function translateToPT(text){
-  if(!text) return text;
+async function fetchJSON(url, ms=12000){
+  const ctrl = new AbortController(); const t = setTimeout(()=>ctrl.abort(), ms);
   try{
-    const r = await fetchWithTimeout(`/api/translate?q=${encodeURIComponent(text)}&from=auto&to=pt-BR&t=${Date.now()}`);
-    const j = await r.json().catch(()=>({}));
-    return j?.text || text;
-  }catch{ return text; }
+    const r = await fetch(url, {signal: ctrl.signal});
+    clearTimeout(t);
+    return r.ok ? await r.json() : null;
+  }catch(_){ clearTimeout(t); return null; }
 }
 
-/* ------------ Versículo do Dia ------------ */
+/* -------------------- Versículo do Dia -------------------- */
 async function loadVDay(){
-  const txt  = $("#vday-text");
-  const ref  = $("#vday-ref");
-  const err  = $("#vday-err");
-  const btn  = $("#btn-vday");
-  if(!txt || !ref) return;
-
-  err && (err.style.display="none");
-  err && (err.textContent="");
-  txt.textContent = "Carregando…";
-  ref.textContent = "";
+  const txt=$("#vday-text"), ref=$("#vday-ref"), btn=$("#btn-vday"), errBox=$("#vday-err");
+  if(!txt||!ref){ return; }
+  if(errBox){ errBox.style.display="none"; errBox.textContent=""; }
+  txt.textContent="Carregando…"; ref.textContent="";
   setLoading(btn, true);
+  const j = await fetchJSON(api(`/verse-of-day?lang=pt&t=${Date.now()}`), 12000);
+  if(j?.text){
+    txt.textContent = j.text.trim();
+    ref.textContent = `${j.ref||""} — ${j.version||"NVI"}`;
+  }else{
+    txt.textContent="(erro ao carregar)";
+    if(errBox){ errBox.textContent="Falha ao consultar /api/verse-of-day."; errBox.style.display="block"; }
+  }
+  setLoading(btn,false);
+}
 
-  try{
-    // sem force=fallback pra evitar rota errada em cache
-    const r = await fetchWithTimeout(`/api/verse-of-day?lang=pt&t=${Date.now()}`, {}, 10000);
-    const j = await r.json();
-    let out = String(j?.text || "");
-    if(isEN(out)) out = await translateToPT(out);
-    txt.textContent = out.trim() || "(sem texto)";
-    ref.textContent = `${j?.ref || ""} — ${j?.version || ""}`;
-  }catch(e){
-    console.error("VDoD erro:", e);
-    txt.textContent = "(erro ao carregar)";
-    if(err){ err.textContent = "Falha ao consultar /api/verse-of-day."; err.style.display = "block"; }
-  }finally{
-    setLoading(btn, false);
+/* -------------------- Busca bíblica -------------------- */
+function mountVersions(){
+  const sel = $("#biblia-ver");
+  if(!sel) return;
+  const versions = CFG?.biblia?.versions || {};
+  sel.innerHTML = "";
+  for(const label of Object.keys(versions)){
+    const opt = document.createElement("option");
+    opt.textContent = label;
+    opt.value = versions[label];
+    sel.appendChild(opt);
+  }
+  const def = CFG?.biblia?.defaultVersion;
+  if(def){
+    const i = Array.from(sel.options).findIndex(o=>o.value===def);
+    if(i>=0) sel.selectedIndex = i;
   }
 }
 
-/* ------------ Busca bíblica ------------ */
 async function searchBible(){
-  const qEl  = $("#biblia-q");
-  const out  = $("#biblia-out");
-  const err  = $("#biblia-err");
-  const btn  = $("#btn-buscar");
+  const qEl=$("#biblia-q"), out=$("#biblia-out"), btn=$("#btn-buscar");
   if(!qEl || !out) return;
-
-  const q = (qEl.value || "").trim();
+  const q=(qEl.value||"").trim();
   if(!q){ qEl.focus(); return; }
-
-  err && (err.style.display="none");
-  err && (err.textContent="");
-  out.value = "Buscando…";
-  setLoading(btn, true);
+  out.value="Buscando…";
+  setLoading(btn,true);
 
   try{
-    const r   = await fetchWithTimeout(`/biblia/bible/content/NVI.txt?passage=${encodeURIComponent(q)}&lang=pt&t=${Date.now()}`, {}, 12000);
-    let txt   = await r.text();
-    if(isEN(txt)) txt = await translateToPT(txt);
-    out.value = txt.trim();
+    // O Worker ignora o "NVI.txt" do caminho; é só para roteamento. A lógica é PT-first no servidor.
+    const url = api(`/biblia/bible/content/NVI.txt?passage=${encodeURIComponent(q)}&lang=pt&t=${Date.now()}`);
+    const r = await fetch(url);
+    let txt = r.ok ? await r.text() : "";
+    if(isEN(txt)){ // reforço: traduz no cliente se algo escapar
+      const tr = await fetchJSON(api(`/translate?q=${encodeURIComponent(txt)}&from=auto&to=pt-BR&t=${Date.now()}`), 12000);
+      if(tr?.text) txt = tr.text;
+    }
+    out.value = (txt||"").trim() || "Nenhum resultado encontrado.";
   }catch(e){
-    console.error("Busca erro:", e);
-    out.value = "";
-    if(err){ err.textContent = "Não foi possível buscar (ex.: João 3:16)."; err.style.display = "block"; }
-  }finally{
-    setLoading(btn, false);
-  }
+    console.error(e);
+    out.value = "Erro ao buscar. Ex.: João 3:16";
+  }finally{ setLoading(btn,false); }
 }
 
-/* ------------ YouTube ------------ */
+/* -------------------- YouTube (API → fallback RSS) -------------------- */
 function cardVideo(v){
   if(!v?.id) return "";
   const thumb = v.thumb || `https://i.ytimg.com/vi/${v.id}/mqdefault.jpg`;
-  const title = (v.title || "").trim();
+  const title = (v.title||"").trim();
   const date  = v.published ? new Date(v.published).toLocaleDateString("pt-BR") : "";
   return `
     <a class="yt-card" target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=${v.id}">
       <img loading="lazy" src="${thumb}" alt="">
-      <div class="yt-info"><div class="yt-title">${title}</div><div class="yt-date">${date}</div></div>
-    </a>`;
+      <div class="yt-info">
+        <div class="yt-title">${title}</div>
+        <div class="yt-date">${date}</div>
+      </div>
+    </a>
+  `;
 }
+
+async function fetchYTJSON(q){
+  const j = await fetchJSON(api(q), 12000);
+  // j = {items:[], error?:string, isLive?, id?}
+  return j || {items:[]};
+}
+
 async function loadLiveOrLatest(){
-  const liveBox   = $("#live");
-  const latestBox = $("#latest");
-  if(!liveBox && !latestBox) return;
+  const ch = CFG?.youtube?.channelId || "";
+  const liveFrame = $("#liveFrame");
+  const latestBox = $("#fulls");
+  if(!ch) { latestBox && (latestBox.innerHTML="<div class='muted'>Canal não configurado.</div>"); return; }
 
-  const channelId = (window.APP_CFG?.youtube?.channelId) || "";
-  if(!channelId){
-    latestBox && (latestBox.innerHTML = "<div class='muted'>Canal não configurado.</div>");
-    return;
+  // 1) live?
+  let live = await fetchYTJSON(`/youtube/live?channel=${encodeURIComponent(ch)}&t=${Date.now()}`);
+  let latestId = null;
+
+  // 2) últimos vídeos (com fallback RSS no Worker)
+  const latest = await fetchYTJSON(`/youtube?channel=${encodeURIComponent(ch)}&t=${Date.now()}`);
+  const items = (latest.items||[]).slice(0,12);
+  if(items.length){ latestId = items[0].id; }
+
+  // embeda
+  const idToPlay = (live?.isLive && live?.id) ? live.id : latestId;
+  if(liveFrame && idToPlay){
+    liveFrame.src = `https://www.youtube.com/embed/${idToPlay}`;
   }
 
-  // LIVE
-  try{
-    const r = await fetchWithTimeout(`/api/youtube/live?channel=${encodeURIComponent(channelId)}&t=${Date.now()}`, {}, 9000);
-    const j = await r.json().catch(()=>({}));
-    if(j?.isLive && j?.id){
-      liveBox.innerHTML = `<a class="live-banner" target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=${j.id}"><span class="live-dot"></span> AO VIVO — Clique para assistir</a>`;
-      liveBox.style.display = "";
-    }else{
-      liveBox.style.display = "none";
-    }
-  }catch{ liveBox && (liveBox.style.display="none"); }
+  if(latestBox){
+    latestBox.innerHTML = items.map(cardVideo).join("") || "<div class='muted'>Sem vídeos recentes.</div>";
+  }
 
-  // ÚLTIMOS
-  try{
-    const r = await fetchWithTimeout(`/api/youtube?channel=${encodeURIComponent(channelId)}&t=${Date.now()}`, {}, 10000);
-    const j = await r.json().catch(()=>({ items:[], error:"" }));
-    if(j.error){
-      latestBox && (latestBox.innerHTML = `<div class='muted'>YouTube: ${j.error}</div>`);
-      return;
-    }
-    const html = (j.items||[]).slice(0,8).map(cardVideo).join("");
-    latestBox && (latestBox.innerHTML = html || "<div class='muted'>Sem vídeos recentes.</div>");
-  }catch(e){
-    console.error("YT erro:", e);
-    latestBox && (latestBox.innerHTML = "<div class='muted'>Falha ao carregar vídeos.</div>");
+  // playlists (shorts/mensagens) — também pegam o fallback RSS no Worker
+  if(CFG?.youtube?.shortsPlaylist){
+    fillPlaylist(CFG.youtube.shortsPlaylist, "#shorts");
+  }
+  if(CFG?.youtube?.fullPlaylist){
+    fillPlaylist(CFG.youtube.fullPlaylist, "#fulls");
   }
 }
 
-/* ------------ Boot ------------ */
-function boot(){
-  $("#yy") && ($("#yy").textContent = new Date().getFullYear());
-  $("#btn-vday")?.addEventListener("click", loadVDay);
-  $("#btn-copy")?.addEventListener("click", async ()=> {
-    try{ const t = ($("#vday-text")?.textContent || "").trim(); if(t) await navigator.clipboard.writeText(t); }catch{}
-  });
+async function fillPlaylist(playlistId, sel){
+  const box = $(sel);
+  if(!box || !playlistId) return;
+  const j = await fetchYTJSON(`/youtube?playlist=${encodeURIComponent(playlistId)}&t=${Date.now()}`);
+  box.innerHTML = (j.items||[]).map(cardVideo).join("") || "<div class='muted'>Sem itens na playlist.</div>";
+}
+
+/* -------------------- Boot -------------------- */
+function wire(){
+  $("#yy") && ($("#yy").textContent=new Date().getFullYear());
   $("#btn-buscar")?.addEventListener("click", searchBible);
-  $("#biblia-q")?.addEventListener("keydown", (e)=>{ if(e.key==="Enter") searchBible(); });
-
-  loadVDay();
-  loadLiveOrLatest();
+  $("#biblia-q")?.addEventListener("keydown", e=>{ if(e.key==="Enter") searchBible(); });
+  $("#btn-copy")?.addEventListener("click", async ()=>{
+    try{
+      const t = ($("#vday-text")?.textContent||"").trim();
+      if(t) await navigator.clipboard.writeText(t);
+    }catch(_){}
+  });
 }
-document.addEventListener("DOMContentLoaded", boot);
+
+(async function boot(){
+  wire();
+  await loadCfg();
+  mountVersions();
+  await Promise.all([loadVDay(), loadLiveOrLatest()]);
+})();
