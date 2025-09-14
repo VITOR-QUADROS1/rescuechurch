@@ -1,4 +1,4 @@
-:root{
+root{
   --bg:#0b1324;
   --bg2:#0f1830;
   --card:#0f1b36;
@@ -49,8 +49,11 @@ h2{margin:0 0 10px 0}
   height:280px; display:flex; align-items:center; justify-content:center;
   overflow:hidden; margin-top:6px
 }
-.hero-img{width:100%; height:100%}
-.hero-img.cover{object-fit:cover}
+.hero-img{
+  width:100%; height:100%;
+  object-fit:cover;
+  opacity:0.25; /* deixa o logo suave de fundo */
+}
 .qr-badge{
   position:absolute; right:16px; top:16px;
   width:140px; aspect-ratio:1;
@@ -174,49 +177,4 @@ h2{margin:0 0 10px 0}
   .yt-card{min-width:260px; width:260px}
   .yt-card img{width:120px; height:80px}
   .qr-badge{width:96px}
-}
-
-/* Adicionado para o link da marca e QR Code no cabeçalho */
-.brand-link {
-  text-decoration: none;
-  color: var(--text);
-  display: flex;
-  align-items: center;
-}
-
-.topbar {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 20px;
-}
-
-.menu {
-  justify-self: center; /* Centraliza o menu */
-}
-
-.header-qr-code img {
-  width: 28px;
-  height: 28px;
-  display: block;
-  border-radius: 4px;
-}
-
-/* Ajuste para telas menores */
-@media (max-width: 700px) {
-  .topbar {
-    grid-template-columns: 1fr auto; /* Duas colunas: marca na esquerda, menu na direita */
-    justify-content: space-between;
-    flex-wrap: wrap; /* Permite que os itens quebrem para a próxima linha */
-    gap: 10px; /* Espaçamento entre os itens */
-  }
-  .menu {
-    grid-row: 2; /* Menu vai para a segunda linha */
-    grid-column: 1 / span 2; /* Ocupa a largura toda */
-    justify-self: start;
-    padding-top: 10px;
-  }
-  .header-qr-code {
-    justify-self: end; /* Alinha o QR code à direita */
-  }
 }
