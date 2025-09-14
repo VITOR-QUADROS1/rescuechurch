@@ -1,105 +1,99 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Igreja de Resgate — Rescue Church</title>
-  <meta name="theme-color" content="#0b1324">
-  <link rel="icon" href="assets/logo.png">
-  <link rel="preload" as="image" href="assets/logo.png">
-  <link rel="stylesheet" href="assets/style.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Igreja de Resgate — Rescue Church</title>
+  <meta name="theme-color" content="#10141E">
+  <link rel="icon" href="assets/logo.png">
+  <link rel="preload" as="image" href="assets/hero-banner.png">
+  <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
-  <header class="topbar">
-    <a href="https://www.youtube.com/channel/UC11Km85MPiYbuPmG7Lz2Wjg" target="_blank" rel="noopener" class="brand-link">
-      <div class="brand">
-        <img src="assets/logo.png" class="brand-logo" alt="Rescue Church">
-        <span>Igreja de Resgate</span>
+  <header class="topbar">
+    <a href="#" class="brand-link">
+      <div class="brand">
+        <img src="assets/logo.png" class="brand-logo" alt="Rescue Church">
+        <span>Igreja de Resgate</span>
+      </div>
+    </a>
+    <nav class="menu">
+      <a href="#inicio">Início</a>
+      <a href="#vdia">Versículo do Dia</a>
+      <a href="#buscar">Buscar na Bíblia</a>
+      <a href="#videos">Vídeos & Lives</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section id="inicio" class="hero card">
+      <img src="assets/hero-banner.png" alt="Rescue Church Banner" class="hero-img">
+      <div class="semeador-badge">
+        <span>SEJA UM</span>
+        <b>SEMEADOR</b>
+        <img src="assets/semeador-qr.png" alt="QR code Semeador">
       </div>
-    </a>
-    <nav class="menu">
-      <a href="#inicio">Início</a>
-      <a href="#vdia">Versículo do Dia</a>
-      <a href="#buscar">Buscar na Bíblia</a>
-      <a href="#videos">Vídeos & Lives</a>
-    </nav>
-  </header>
+    </section>
 
-  <main class="container">
-    <!-- Painel inicial com logo inteiro e QR no canto -->
-    <section id="inicio" class="hero card">
-      <img src="assets/logo.png" alt="Rescue Church" class="hero-img cover">
-      <a class="qr-badge" href="assets/qrcode.jpg" target="_blank" rel="noopener" aria-label="Abrir QR code">
-        <img src="assets/qrcode.jpg" alt="QR code">
-      </a>
-    </section>
+    <section id="vdia" class="card section">
+      <div class="section-head">
+        <h2>Versículo do dia</h2>
+        <button id="btn-copy" class="btn pill">Copiar ✨</button>
+      </div>
+      <p id="vday-text" class="verse">Carregando...</p>
+      <p id="vday-ref" class="muted"></p>
+    </section>
 
-    <section id="vdia" class="card section">
-      <div class="section-head">
-        <h2>Versículo do dia</h2>
-        <button id="btn-copy" class="btn pill">Copiar 📋</button>
-      </div>
-      <p id="vday-text" class="verse">Carregando...</p>
-      <p id="vday-ref" class="muted"></p>
-    </section>
+    <section id="buscar" class="card section">
+      <h2>Buscar na Bíblia</h2>
+      <div class="search-col">
+        <input id="biblia-q" class="input" placeholder="Ex.: João 3:16 ou 'amor fé esperança'">
+        <select id="biblia-ver" class="select"></select>
+        <button id="btn-buscar" class="btn">Procurar</button>
+      </div>
+      <p class="hint">Dica: referências aceitam variações (“Joao 3:16”, “Salmos 23”).</p>
+      <textarea id="biblia-out" class="result" readonly></textarea>
+    </section>
 
-    <section id="buscar" class="card section">
-      <h2>Buscar na Bíblia</h2>
-      <div class="search-row">
-        <input id="biblia-q" class="input" placeholder="Ex.: João 3:16 ou 'amor fé esperança'">
-        <select id="biblia-ver" class="select"></select>
-        <button id="btn-buscar" class="btn">Procurar</button>
-      </div>
-      <p class="hint">Dica: referências aceitam variações (“Joao 3:16”, “Salmos 23”).</p>
-      <textarea id="biblia-out" class="result" readonly></textarea>
-    </section>
-
-    <section id="videos" class="card section">
-      <h2>Vídeos & Lives</h2>
-
-      <div class="video-grid">
-        <div class="live-col">
-          <h3>Ao vivo</h3>
-          <div class="player">
-            <iframe id="liveFrame" width="100%" height="100%" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-          </div>
-          <p class="muted">Se estiver ao vivo, aparece aqui. Caso contrário, mostra o último vídeo.</p>
+    <section id="videos" class="card section">
+      <h2>Vídeos & Lives</h2>
+      <div class="video-section">
+        <h3>Ao vivo</h3>
+        <div class="player">
+          <iframe id="liveFrame" width="100%" height="100%" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
         </div>
+        <p class="muted" style="text-align: center; margin-top: 12px;">Se estiver ao vivo, aparece aqui. Caso contrário, mostra o último vídeo.</p>
+      </div>
 
-        <div class="shorts-col">
-          <h3>Curts</h3>
-          <div class="carousel">
-            <button class="car-btn prev" data-target="#shorts" aria-label="Anterior">‹</button>
-            <div id="shorts" class="hscroll"></div>
-            <button class="car-btn next" data-target="#shorts" aria-label="Próximo">›</button>
-          </div>
-        </div>
-
-        <div class="full-col">
-          <h3>Mensagens completas</h3>
-          <div class="carousel">
-            <button class="car-btn prev" data-target="#fulls" aria-label="Anterior">‹</button>
-            <div id="fulls" class="hscroll"></div>
-            <button class="car-btn next" data-target="#fulls" aria-label="Próximo">›</button>
-          </div>
+      <div class="video-section">
+        <h3>Curts</h3>
+        <div class="carousel">
+          <div id="shorts" class="hscroll"></div>
         </div>
       </div>
-    </section>
 
-    <footer class="footer">
-      <small>© <span id="yy"></span> Igreja de Resgate — feito com amor.</small>
-    </footer>
-  </main>
-
-  <div id="ytModal" class="yt-modal" hidden>
-    <div class="yt-box">
-      <button class="yt-close" aria-label="Fechar">✕</button>
-      <div class="yt-player">
-        <iframe id="ytFrame" src="" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+      <div class="video-section">
+        <h3>Mensagens completas</h3>
+        <div class="carousel">
+          <div id="fulls" class="hscroll"></div>
+        </div>
       </div>
-    </div>
-  </div>
+    </section>
 
-  <script type="module" src="assets/app.js"></script>
+    <footer class="footer">
+      <small>© <span id="yy"></span> Igreja de Resgate — feito com amor.</small>
+    </footer>
+  </main>
+  
+    <div id="ytModal" class="yt-modal" hidden>
+    <div class="yt-box">
+      <button class="yt-close" aria-label="Fechar">✕</button>
+      <div class="yt-player">
+        <iframe id="ytFrame" src="" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="assets/app.js"></script>
 </body>
 </html>
