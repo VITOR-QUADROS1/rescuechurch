@@ -1,4 +1,4 @@
-/* assets/app.js — RC v10 (PT-first + YT RSS + Carousel + Bible PT failsafe) */
+/* assets/app.js — RC v11 (PT-first + YT + Carousel autônomo + Bible PT failsafe) */
 const $  = (q) => document.querySelector(q);
 const $$ = (q) => Array.from(document.querySelectorAll(q));
 
@@ -70,7 +70,8 @@ async function searchBible(){
   const q=(qEl.value||"").trim(); if(!q){ qEl.focus(); return; }
   out.value="Buscando…"; btn && btn.classList.add("is-loading");
   try{
-    const url = api(`/biblia/bible/content/NVI.txt?passage=${encodeURIComponent(q)}&lang=pt&t=${Date.now()}`);
+    const ver = $("#biblia-ver")?.value || "NVI";
+    const url = api(`/biblia/bible/content/${encodeURIComponent(ver)}.txt?passage=${encodeURIComponent(q)}&lang=pt&t=${Date.now()}`);
     const r   = await fetch(url);
     let txt   = r.ok ? (await r.text()) : "";
     if(looksEN(txt)) txt = await translatePT(txt);              // ✅ garante PT-BR na saída
@@ -85,12 +86,13 @@ function cardVideo(v){
   const thumb=v.thumb || `https://i.ytimg.com/vi/${v.id}/mqdefault.jpg`;
   const title=(v.title||"").trim();
   const date = v.published ? new Date(v.published).toLocaleDateString("pt-BR") : "";
+  // ✅ Usa teu CSS (.hitem / .hthumb / .hmeta)
   return `
-    <a class="yt-card" target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=${v.id}">
-      <img loading="lazy" src="${thumb}" alt="">
-      <div class="yt-info">
-        <div class="yt-title">${title}</div>
-        <div class="yt-date">${date}</div>
+    <a class="hitem" target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=${v.id}">
+      <img class="hthumb" loading="lazy" src="${thumb}" alt="">
+      <div class="hmeta">
+        <div class="t">${title}</div>
+        <div class="s">${date}</div>
       </div>
     </a>
   `;
@@ -98,40 +100,80 @@ function cardVideo(v){
 async function fetchJSON(url){
   try{ const r=await fetch(url); return r.ok ? await r.json() : null; }catch(_){ return null; }
 }
+function renderHScroll(sel, items){
+  const box=$(sel); if(!box) return;
+  box.innerHTML = items.length ? items.map(cardVideo).join("") : "<div class='muted' style='padding:8px;'>Sem itens.</div>";
+  setupCarousel(box);                                           // ✅ ativa carrossel na faixa
+}
 async function fillPlaylist(pid, sel){
-  const box=$(sel); if(!box||!pid) return;
+  if(!pid) return renderHScroll(sel, []);
   const j = await fetchJSON(api(`/youtube?playlist=${encodeURIComponent(pid)}&t=${Date.now()}`));
-  box.innerHTML = (j?.items||[]).map(cardVideo).join("") || "<div class='muted'>Sem itens.</div>";
+  const items = (j?.items||[]).slice(0, 15);
+  renderHScroll(sel, items);
 }
 async function loadLiveOrLatest(){
   const ch=CFG?.youtube?.channelId; if(!ch) return;
-  const frame=$("#liveFrame"), list=$("#fulls");
+  const frame=$("#liveFrame");
   const live   = await fetchJSON(api(`/youtube/live?channel=${encodeURIComponent(ch)}&t=${Date.now()}`));
   const latest = await fetchJSON(api(`/youtube?channel=${encodeURIComponent(ch)}&t=${Date.now()}`));
   const items  = (latest?.items||[]).slice(0,12);
-  if(list) list.innerHTML = items.map(cardVideo).join("") || "<div class='muted'>Sem vídeos recentes.</div>";
+
+  renderHScroll("#fulls", items);
+
   const id = (live?.isLive && live?.id) ? live.id : (items[0]?.id || null);
   if(frame && id) frame.src = `https://www.youtube.com/embed/${id}`;
-  if(CFG?.youtube?.shortsPlaylist) fillPlaylist(CFG.youtube.shortsPlaylist, "#shorts");
-  initCarousel();                                               // ✅ ativa botões do carrossel
+
+  if(CFG?.youtube?.shortsPlaylist) await fillPlaylist(CFG.youtube.shortsPlaylist, "#shorts");
+  else renderHScroll("#shorts", []);
 }
 
-/* ---------- Carousel (3 por vez, com setas) ---------- */
-function scrollByBtn(btn){
-  const target = btn.getAttribute("data-target");
-  const dir    = btn.getAttribute("data-dir") === "next" ? 1 : -1;
-  const el = $(target);
-  if(!el) return;
-  const step = Math.max(1, Math.round(el.clientWidth / getCardWidth(el))); // ~3 cards por “página”
-  el.scrollBy({ left: dir * step * getCardWidth(el), behavior:"smooth" });
-}
-function getCardWidth(track){
-  const card = track.querySelector(".yt-card");
-  return card ? card.getBoundingClientRect().width + 12 : Math.max(280, track.clientWidth/3);
-}
-function initCarousel(){
-  $$(".car-btn").forEach(b=>{
-    b.onclick = ()=>scrollByBtn(b);
+/* ---------- Carousel (auto-setas, 3+ por vez) ---------- */
+function setupCarousel(scroller){
+  if (!scroller || scroller._hasCarousel) return;
+  scroller._hasCarousel = true;
+
+  // Mostrar gradientes laterais quando houver rolagem
+  const toggleScrollable = () => {
+    const canScroll = scroller.scrollWidth > scroller.clientWidth + 4;
+    scroller.classList.toggle('is-scrollable', canScroll);
+  };
+  new ResizeObserver(toggleScrollable).observe(scroller);
+  toggleScrollable();
+
+  const prev = document.createElement('button');
+  prev.className = 'carousel-nav prev';
+  prev.setAttribute('aria-label','Anterior');
+  prev.textContent = '‹';
+
+  const next = document.createElement('button');
+  next.className = 'carousel-nav next';
+  next.setAttribute('aria-label','Próximo');
+  next.textContent = '›';
+
+  scroller.append(prev, next);
+
+  const getStep = () => {
+    const card = scroller.querySelector('.hitem');
+    const gap = parseFloat(getComputedStyle(scroller).gap || 12);
+    return card ? Math.round(card.getBoundingClientRect().width + gap) : Math.round(scroller.clientWidth * 0.9);
+  };
+
+  prev.addEventListener('click', () => scroller.scrollBy({ left: -getStep(), behavior: 'smooth' }));
+  next.addEventListener('click', () => scroller.scrollBy({ left:  getStep(), behavior: 'smooth' }));
+
+  // Scroll vertical do mouse → horizontal (desktop)
+  scroller.addEventListener('wheel', (e) => {
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      scroller.scrollBy({ left: e.deltaY, behavior: 'smooth' });
+      e.preventDefault();
+    }
+  }, { passive:false });
+
+  // Teclado
+  scroller.tabIndex = 0;
+  scroller.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft')  prev.click();
+    if (e.key === 'ArrowRight') next.click();
   });
 }
 
