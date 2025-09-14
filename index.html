@@ -14,10 +14,6 @@
     <div class="brand">
       <img src="assets/logo.png" class="brand-logo" alt="Rescue Church">
       <span>Igreja de Resgate</span>
-      <!-- QR code ao lado do logo -->
-      <a class="qr-tag" href="assets/qrcode.png" target="_blank" title="Abrir QR code">
-        <img src="assets/qrcode.png" alt="QR code">
-      </a>
     </div>
     <nav class="menu">
       <a href="#inicio">Início</a>
@@ -30,7 +26,11 @@
   <main class="container">
     <!-- HERO -->
     <section id="inicio" class="hero card">
-      <img src="assets/logo.png" alt="Rescue Church" class="hero-img cover">
+      <img src="assets/hero.jpg" alt="Rescue Church" class="hero-img cover">
+      <!-- QR no cantinho do hero -->
+      <a class="qr-fab" href="assets/qrcode.png" target="_blank" title="QR code">
+        <img src="assets/qrcode.png" alt="QR code">
+      </a>
     </section>
 
     <!-- VERSÍCULO DO DIA -->
@@ -70,12 +70,21 @@
 
         <div class="shorts-col">
           <h3>Curtos</h3>
-          <div id="shorts" class="hscroll"></div>
+          <!-- wrapper criado via JS também, mas pode ficar explícito -->
+          <div class="carousel-wrap">
+            <button class="carousel-nav prev" data-target="#shorts" data-dir="prev" aria-label="Anterior">‹</button>
+            <div id="shorts" class="hscroll"></div>
+            <button class="carousel-nav next" data-target="#shorts" data-dir="next" aria-label="Próximo">›</button>
+          </div>
         </div>
 
         <div class="full-col">
           <h3>Mensagens completas</h3>
-          <div id="fulls" class="hscroll"></div>
+          <div class="carousel-wrap">
+            <button class="carousel-nav prev" data-target="#fulls" data-dir="prev" aria-label="Anterior">‹</button>
+            <div id="fulls" class="hscroll"></div>
+            <button class="carousel-nav next" data-target="#fulls" data-dir="next" aria-label="Próximo">›</button>
+          </div>
         </div>
       </div>
     </section>
