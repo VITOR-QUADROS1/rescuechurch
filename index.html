@@ -1,118 +1,146 @@
 <!doctype html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Igreja de Resgate</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="assets/style.css" />
-  </head>
-  <body>
-    <header class="site-header">
-      <div class="wrap">
-        <div class="brand">
-          <span class="logo">⛪</span>
-          <span class="brand-name">Igreja de Resgate</span>
-        </div>
-        <nav class="site-nav">
-          <a href="#vday">Versículo</a>
-          <a href="#busca">Bíblia</a>
-          <a href="#videos">Vídeos</a>
-        </nav>
-      </div>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Igreja de Resgate</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="brand">Igreja de Resgate</div>
+      <nav class="nav">
+        <a href="#vday">Versículo</a>
+        <a href="#biblia">Bíblia</a>
+        <a href="#videos">Vídeos</a>
+      </nav>
     </header>
 
-    <main class="wrap main">
-      <!-- =================== Versículo do dia =================== -->
-      <section id="vday" class="card section">
-        <div class="section-head">
-          <h2>Versículo do dia</h2>
-          <div class="actions">
-            <button id="btn-vday" class="btn">Atualizar</button>
-            <button id="btn-copy" class="btn btn-ghost">Copiar</button>
-          </div>
+    <!-- Versículo do Dia -->
+    <section id="vday" class="box">
+      <div class="box-head">
+        <h2>Versículo do dia</h2>
+        <div class="actions">
+          <button id="refreshBtn" class="btn">Atualizar</button>
+          <button id="copyBtn" class="btn btn-secondary">Copiar</button>
         </div>
-
-        <p id="vday-text" class="verse big muted">(carregando...)</p>
-        <div class="ref" id="vday-ref"></div>
-        <div id="vday-err" class="err" style="display:none"></div>
-      </section>
-
-      <!-- =================== Buscar na Bíblia =================== -->
-      <section id="busca" class="card section">
-        <h2>Buscar na Bíblia</h2>
-
-        <div class="search-row">
-          <input id="biblia-q" type="text" class="input" placeholder='Ex.: "João 3:16" ou "Salmos 23"' />
-          <select id="biblia-ver" class="select">
-            <!-- será preenchido por config.json (app.js) -->
-            <option value="NVI">NVI (pt-BR)</option>
-          </select>
-          <button id="btn-buscar" class="btn">Procurar</button>
-        </div>
-
-        <p class="muted small">
-          Dica: referências aceitam variações (Ex.: "joao 3:16", "salmos 23", "tiago 3").
-        </p>
-
-        <textarea id="biblia-out" class="output" rows="10" spellcheck="false" placeholder="(sem resultados)"></textarea>
-      </section>
-
-      <!-- =================== Vídeos & Lives =================== -->
-      <section id="videos" class="card section">
-        <h2>Vídeos & Lives</h2>
-
-        <div class="video-grid">
-          <!-- Live / Último vídeo -->
-          <div class="live-col">
-            <h3>Ao vivo</h3>
-            <div class="player">
-              <iframe id="liveFrame" width="100%" height="100%" frameborder="0"
-                      allow="autoplay; encrypted-media" allowfullscreen
-                      title="Transmissão ao vivo"></iframe>
-            </div>
-            <p class="muted">Se estiver ao vivo, aparece aqui. Caso contrário, mostramos o último vídeo.</p>
-          </div>
-
-          <!-- Shorts -->
-          <div class="shorts-col">
-            <div class="section-head small-gap">
-              <h3>Vídeos Curtos</h3>
-              <div class="actions">
-                <button class="car-btn prev" data-target="#shorts" data-dir="prev" aria-label="Anterior">‹</button>
-                <button class="car-btn next" data-target="#shorts" data-dir="next" aria-label="Próximo">›</button>
-              </div>
-            </div>
-            <div id="shorts" class="hscroll">
-              <!-- cards entram aqui via JS -->
-            </div>
-          </div>
-
-          <!-- Mensagens completas -->
-          <div class="full-col">
-            <div class="section-head small-gap">
-              <h3>Mensagens completas</h3>
-              <div class="actions">
-                <button class="car-btn prev" data-target="#fulls" data-dir="prev" aria-label="Anterior">‹</button>
-                <button class="car-btn next" data-target="#fulls" data-dir="next" aria-label="Próximo">›</button>
-              </div>
-            </div>
-            <div id="fulls" class="hscroll">
-              <!-- cards entram aqui via JS -->
-            </div>
-          </div>
-        </div>
-      </section>
-    </main>
-
-    <footer class="site-footer">
-      <div class="wrap">
-        <p>© <span id="yy"></span> Igreja de Resgate — feito com amor.</p>
       </div>
-    </footer>
 
-    <script src="assets/app.js" defer></script>
-  </body>
+      <p id="vtext" class="verse">(carregando...)</p>
+      <div class="ref"><span id="vref"></span> — <span class="tag">LEB</span></div>
+    </section>
+
+    <!-- Buscar na Bíblia -->
+    <section id="biblia" class="box">
+      <h2>Buscar na Bíblia</h2>
+
+      <div class="search-row">
+        <input id="q" class="input" type="text" placeholder='Ex.: "João 3:16" ou "Salmos 23"'>
+        <select id="verSelect" class="select" title="Versão">
+          <option value="NVI">NVI (pt-BR)</option>
+          <option value="NTLH">NTLH (pt-BR)</option>
+          <option value="LEB">LEB (EN)</option>
+        </select>
+        <button id="searchBtn" class="btn-primary">Procurar</button>
+      </div>
+
+      <p class="hint">Dica: referências aceitam variações (Ex.: "joao 3:16", "salmos 23", "tiago 3").</p>
+
+      <div class="out-wrap">
+        <textarea id="out" class="out" readonly>(sem resultados)</textarea>
+      </div>
+    </section>
+
+    <!-- Vídeos -->
+    <section id="videos" class="box">
+      <h2>Ao vivo</h2>
+
+      <div class="video-grid">
+        <!-- Coluna: Live / Último vídeo -->
+        <div class="live-col">
+          <div class="player">
+            <iframe
+              id="player"
+              title="YouTube player"
+              width="100%" height="100%"
+              src="about:blank"
+              frameborder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowfullscreen
+            ></iframe>
+          </div>
+          <div class="player-caption" id="playerCaption">Carregando...</div>
+        </div>
+
+        <!-- Coluna: Shorts -->
+        <div class="list-col">
+          <div class="list-head">
+            <h3>Vídeos Curtos</h3>
+          </div>
+
+          <!-- wrapper do carrossel (NÃO altera seu #shorts) -->
+          <div class="hwrap">
+            <button class="carousel-nav prev" aria-label="Anterior" data-target="#shorts">‹</button>
+
+            <div id="shorts" class="hscroll" role="list">
+              <!-- app.js popula com cards .hitem -->
+            </div>
+
+            <button class="carousel-nav next" aria-label="Próximo" data-target="#shorts">›</button>
+          </div>
+        </div>
+
+        <!-- Coluna: Mensagens completas -->
+        <div class="list-col">
+          <div class="list-head">
+            <h3>Mensagens completas</h3>
+          </div>
+
+          <!-- wrapper do carrossel (NÃO altera seu #fulls) -->
+          <div class="hwrap">
+            <button class="carousel-nav prev" aria-label="Anterior" data-target="#fulls">‹</button>
+
+            <div id="fulls" class="hscroll" role="list">
+              <!-- app.js popula com cards .hitem -->
+            </div>
+
+            <button class="carousel-nav next" aria-label="Próximo" data-target="#fulls">›</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      © Igreja de Resgate — feito com amor.
+    </footer>
+  </div>
+
+  <script src="app.js" defer></script>
+
+  <!-- Script mínimo só para os botões do carrossel (não interfere no app.js) -->
+  <script>
+    (function () {
+      function nav(btn, dir) {
+        const sel = btn.getAttribute('data-target');
+        const track = document.querySelector(sel);
+        if (!track) return;
+        const card = track.querySelector('.hitem');
+        const step = card ? card.getBoundingClientRect().width + 16 : 320;
+        track.scrollBy({ left: dir * step, behavior: 'smooth' });
+      }
+      document.addEventListener('click', (ev) => {
+        const b = ev.target.closest('.carousel-nav');
+        if (!b) return;
+        ev.preventDefault();
+        nav(b, b.classList.contains('next') ? +1 : -1);
+      }, { passive: false });
+    })();
+  </script>
+</body>
 </html>
