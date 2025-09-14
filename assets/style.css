@@ -29,6 +29,11 @@ body{
 .menu a{color:var(--muted); text-decoration:none}
 .menu a:hover{color:var(--text)}
 
+/* QR code na topbar */
+.qr-tag{ margin-left:8px; display:inline-block; border-radius:8px; overflow:hidden;
+  border:1px solid rgba(255,255,255,.12); box-shadow:0 4px 12px rgba(0,0,0,.35); }
+.qr-tag img{ width:28px; height:28px; display:block; }
+
 /* Container */
 .container{max-width:1200px; margin:0 auto; padding:24px}
 
@@ -81,9 +86,10 @@ h2{margin:0 0 10px 0}
 /* Lista horizontal (carrossel) */
 .hscroll{
   position:relative;                   /* para posicionar setas dentro */
-  display:flex; gap:12px; overflow-x:auto; padding:8px; border-radius:12px;
+  display:flex; gap:12px; overflow-x:auto; padding:8px 52px; /* espaço p/ setas */
+  border-radius:12px;
   background:rgba(255,255,255,.02); border:1px solid rgba(255,255,255,.06);
-  scroll-snap-type:x mandatory; cursor:grab; scroll-behavior:smooth;   /* suaviza */
+  scroll-snap-type:x mandatory; cursor:grab; scroll-behavior:smooth;
 }
 .hscroll:active{cursor:grabbing}
 .hscroll::before,
@@ -110,21 +116,21 @@ h2{margin:0 0 10px 0}
 .hmeta .t{font-weight:600; font-size:.95rem; line-height:1.25rem; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
 .hmeta .s{color:var(--muted); font-size:.85rem; margin-top:4px}
 
-/* Botões do carrossel (prev/next) */
-.carousel-nav{
+/* Botões do carrossel (prev/next) – compatível com .car-btn do JS */
+.car-btn, .carousel-nav{
   position:absolute; top:50%; transform:translateY(-50%);
   width:36px; height:36px; border-radius:999px;
   border:1px solid rgba(255,255,255,.15);
-  background: rgba(16,24,45,.6);
-  color:#e9f0ff; display:grid; place-items:center; font-weight:700;
-  cursor:pointer; user-select:none; backdrop-filter: blur(4px);
-  outline:none; transition: transform .15s ease, background .15s ease, border-color .15s ease, opacity .15s;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color:#fff; display:grid; place-items:center; font-weight:700;
+  cursor:pointer; user-select:none;
+  outline:none; transition: transform .15s ease, opacity .15s;
+  box-shadow:0 4px 18px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.15);
+  z-index:5;
 }
-.carousel-nav:hover{ background: rgba(16,24,45,.75); border-color: rgba(255,255,255,.25); }
-.carousel-nav.prev{left:8px}
-.carousel-nav.next{right:8px}
-
-@media (pointer:coarse){ .carousel-nav{opacity:.95} }
+.car-btn:hover, .carousel-nav:hover{ transform:translateY(-50%) scale(1.05); }
+.car-btn.prev, .carousel-nav.prev{ left:8px; }
+.car-btn.next, .carousel-nav.next{ right:8px; }
 
 /* Loading state */
 .is-loading{opacity:0.7; pointer-events:none}
@@ -148,4 +154,5 @@ h2{margin:0 0 10px 0}
   .live-col .player{height:220px;}
   .hitem{min-width:240px;}
   .hthumb{width:120px; height:80px;}
+  .qr-tag img{ width:24px; height:24px; }
 }
