@@ -43,6 +43,19 @@ async function fetchJSON(url, ms = 12000) {
   }
 }
 
+async function fetchText(url, ms = 12000) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), ms);
+  try {
+    const r = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(t);
+    return r.ok ? await r.text() : null;
+  } catch (_) {
+    clearTimeout(t);
+    return null;
+  }
+}
+
 /* -------------------- Versículo do Dia -------------------- */
 async function loadVDay() {
   const txt = $("#vday-text"), ref = $("#vday-ref"), btn = $("#btn-vday");
@@ -102,19 +115,19 @@ async function searchBible() {
 
   try {
     const url = api(`/biblia/bible/content/NVI.txt?passage=${encodeURIComponent(q)}&lang=pt&t=${Date.now()}`);
-    const r = await fetch(url);
+    const txt = await fetchText(url, 15000);
     
-    if (r.ok) {
-      let txt = await r.text();
-      if (isEN(txt)) {
+    if (txt !== null) {
+      let result = txt.trim();
+      if (isEN(result)) {
         try {
-          const tr = await fetchJSON(api(`/translate?q=${encodeURIComponent(txt)}&from=auto&to=pt-BR&t=${Date.now()}`), 12000);
-          if (tr?.text) txt = tr.text;
+          const tr = await fetchJSON(api(`/translate?q=${encodeURIComponent(result)}&from=auto&to=pt-BR&t=${Date.now()}`), 12000);
+          if (tr?.text) result = tr.text;
         } catch (e) {
           console.error("Translation failed:", e);
         }
       }
-      out.value = (txt || "").trim() || "Nenhum resultado encontrado.";
+      out.value = result || "Nenhum resultado encontrado.";
     } else {
       out.value = "Erro ao buscar. Ex.: João 3:16";
     }
@@ -172,18 +185,23 @@ async function loadLiveOrLatest() {
     const live = await fetchYTJSON(`/youtube/live?channel=${encodeURIComponent(ch)}&t=${Date.now()}`);
     const idToPlay = (live?.isLive && live?.id) ? live.id : null;
     
-    if (liveFrame && idToPlay) {
-      liveFrame.src = `https://www.youtube.com/embed/${idToPlay}?autoplay=1`;
-    } else if (liveFrame) {
-      // If no live, load latest videos for channel
-      const latest = await fetchYTJSON(`/youtube?channel=${encodeURIComponent(ch)}&t=${Date.now()}`);
-      const latestId = latest.items?.[0]?.id;
-      if (latestId) {
-        liveFrame.src = `https://www.youtube.com/embed/${latestId}`;
+    if (liveFrame) {
+      if (idToPlay) {
+        liveFrame.src = `https://www.youtube.com/embed/${idToPlay}?autoplay=1`;
+      } else {
+        // If no live, load latest videos for channel
+        const latest = await fetchYTJSON(`/youtube?channel=${encodeURIComponent(ch)}&t=${Date.now()}`);
+        const latestId = latest.items?.[0]?.id;
+        if (latestId) {
+          liveFrame.src = `https://www.youtube.com/embed/${latestId}`;
+        } else {
+          liveFrame.src = "about:blank";
+        }
       }
     }
   } catch (e) {
     console.error("Live stream error:", e);
+    if (liveFrame) liveFrame.src = "about:blank";
   }
 
   // 2) Load playlists
