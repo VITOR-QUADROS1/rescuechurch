@@ -59,19 +59,25 @@
         <div class="live-col">
           <h3>Ao vivo</h3>
           <div class="player">
-            <iframe id="liveFrame" width="100%" height="100%" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+            <iframe id="liveFrame" width="100%" height="100%" frameborder="0" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                    allowfullscreen></iframe>
           </div>
           <p class="muted">Se estiver ao vivo, aparece aqui. Caso contrário, mostra o último vídeo.</p>
         </div>
 
         <div class="shorts-col">
-          <h3>Videos Curtos</h3>
-          <div id="shorts" class="hscroll"></div>
+          <h3>Vídeos Curtos</h3>
+          <div id="shorts" class="hscroll">
+            <div class="muted">Carregando shorts...</div>
+          </div>
         </div>
 
         <div class="full-col">
           <h3>Mensagens completas</h3>
-          <div id="fulls" class="hscroll"></div>
+          <div id="fulls" class="hscroll">
+            <div class="muted">Carregando mensagens...</div>
+          </div>
         </div>
       </div>
     </section>
