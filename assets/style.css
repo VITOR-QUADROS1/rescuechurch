@@ -54,40 +54,47 @@ body {
 h2 { margin: 0; font-size: 1.6rem; }
 h3 { margin-top: 24px; margin-bottom: 12px; font-size: 1.3rem; border-bottom: 1px solid rgba(255,255,255,.1); padding-bottom: 8px; }
 
-/* 1️⃣ SEÇÃO HERO (TOPO) - CORRIGIDO O CAMINHO DA IMAGEM */
+/* SEÇÃO HERO (TOPO) - LOGO COMO BACKGROUND E QR CODE GRANDE NO CANTO */
 .hero {
   position: relative;
-  height: 280px;
+  height: 280px; /* Altura fixa do painel */
   padding: 0;
   overflow: hidden;
-  /* Caminho do background corrigido para ser mais robusto */
-  background-image: url('/assets/logo.png');
-  background-size: contain;
+
+  /* Logo como background */
+  background-image: url('assets/logo.png'); /* Caminho ajustado */
+  background-size: cover; /* Cobre todo o painel, cortando se necessário */
   background-repeat: no-repeat;
-  background-position: center;
+  background-position: center; /* Centraliza o logo no painel */
 }
 
-/* 2️⃣ QR CODE - TAMANHO AUMENTADO */
 .qr-badge {
   position: absolute;
-  top: 16px;
-  right: 16px;
-  width: 130px; /* Tamanho aumentado */
-  height: 130px; /* Tamanho aumentado */
-  padding: 8px;
-  border-radius: 16px; /* Borda ajustada */
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  transition: transform 0.2s ease;
+  top: 0; /* Alinha no topo do painel */
+  right: 0; /* Alinha na direita do painel */
+  height: 100%; /* Ocupa 100% da altura do painel */
+  width: auto; /* Largura automática para manter proporção */
+  aspect-ratio: 1; /* Garante que seja quadrado */
+  padding: 12px; /* Espaçamento interno */
+  border-radius: 0 24px 24px 0; /* Cantos arredondados apenas à direita, encaixando no painel */
+  background: rgba(0, 0, 0, 0.6); /* Fundo mais escuro para o QR code se destacar */
+  backdrop-filter: blur(10px); /* Mais blur */
+  border: 1px solid rgba(255, 255, 255, 0.15); /* Borda mais visível */
+  border-left: none; /* Remove a borda esquerda para o design fluir */
+  display: flex; /* Para centralizar a imagem do QR code */
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease, background 0.2s ease;
 }
 .qr-badge:hover {
-  transform: scale(1.05);
+  transform: translateX(-5px); /* Desliza um pouco para a esquerda */
+  background: rgba(0, 0, 0, 0.8); /* Fica mais escuro ao passar o mouse */
 }
 .qr-badge img {
-  width: 100%;
-  height: 100%;
-  border-radius: 12px; /* Borda interna ajustada */
+  width: 90%; /* QR code um pouco menor que o badge para ter respiro */
+  height: 90%;
+  object-fit: contain;
+  border-radius: 8px;
 }
 
 /* VERSÍCULO DO DIA */
@@ -184,19 +191,24 @@ h3 { margin-top: 24px; margin-bottom: 12px; font-size: 1.3rem; border-bottom: 1p
   width: 32px; height: 32px; cursor: pointer;
 }
 
-/* 3️⃣ RESPONSIVO - AJUSTADO PARA O TOPO FICAR CENTRALIZADO NO MOBILE */
+/* RESPONSIVO */
 @media (max-width: 700px) {
   .topbar {
     padding: 16px;
-    flex-direction: column; /* Coloca o logo acima do menu */
+    flex-direction: column;
     gap: 16px;
-    align-items: center; /* Centraliza tudo */
+    align-items: center;
   }
   .menu {
     gap: 16px;
     justify-content: center;
     width: 100%;
   }
-  .qr-badge { width: 110px; height: 110px; top: 10px; right: 10px; }
+  /* Ajuste do QR code para telas menores, se necessário */
+  .qr-badge {
+    height: 80%; /* Pode ser um pouco menor no mobile para não ocupar muito espaço */
+    top: 10%; /* Centraliza verticalmente melhor */
+    width: auto;
+  }
   .verse { font-size: 1.3rem; }
 }
