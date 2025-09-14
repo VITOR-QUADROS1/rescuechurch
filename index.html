@@ -6,6 +6,7 @@
   <title>Igreja de Resgate — Rescue Church</title>
   <meta name="theme-color" content="#0b1324">
   <link rel="icon" href="assets/logo.png">
+  <link rel="preload" as="image" href="assets/logo.png">
   <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
@@ -36,10 +37,6 @@
       </div>
       <p id="vday-text" class="verse">Carregando...</p>
       <p id="vday-ref" class="muted"></p>
-      <p id="vday-err" class="muted" style="display:none;color:#ffb4b4"></p>
-      <div class="actions">
-        <button id="btn-vday" class="btn">Atualizar</button>
-      </div>
     </section>
 
     <!-- BUSCA NA BÍBLIA -->
@@ -47,16 +44,11 @@
       <h2>Buscar na Bíblia</h2>
       <div class="search-row">
         <input id="biblia-q" class="input" placeholder="Ex.: João 3:16 ou 'amor fé esperança'">
-        <select id="biblia-ver" class="select">
-          <option value="NVI" selected>NVI (pt-BR)</option>
-          <option value="NTLH">NTLH (pt-BR)</option>
-        </select>
+        <select id="biblia-ver" class="select"></select>
         <button id="btn-buscar" class="btn">Procurar</button>
       </div>
       <p class="hint">Dica: referências aceitam variações (“Joao 3:16”, “Salmos 23”).</p>
-      <!-- IDs corrigidos para casar com o app.js -->
-      <p id="biblia-err" class="muted" style="display:none;color:#ffb4b4"></p>
-      <textarea id="biblia-text" class="result" readonly></textarea>
+      <textarea id="biblia-out" class="result" readonly></textarea>
     </section>
 
     <!-- VÍDEOS & LIVES -->
@@ -66,15 +58,14 @@
       <div class="video-grid">
         <div class="live-col">
           <h3>Ao vivo</h3>
-          <div id="live" class="mb8"></div>
           <div class="player">
             <iframe id="liveFrame" width="100%" height="100%" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
           </div>
-          <p class="muted">Se estiver ao vivo, aparece aqui. Caso contrário, mostramos os últimos vídeos abaixo.</p>
+          <p class="muted">Se estiver ao vivo, aparece aqui. Caso contrário, mostra o último vídeo.</p>
         </div>
 
         <div class="shorts-col">
-          <h3>Vídeos Curtos</h3>
+          <h3>Videos Curtos</h3>
           <div id="shorts" class="hscroll"></div>
         </div>
 
@@ -90,17 +81,6 @@
     </footer>
   </main>
 
-  <!-- Config do canal YouTube -->
-  <script>
-    window.APP_CFG = {
-      yt: {
-        channelId: 'UC11Km85MPiYbuPmG7Lz2Wjg',
-        fullPlaylistId: 'UU11Km85MPiYbuPmG7Lz2Wjg',
-        shortsPlaylistId: 'UUSH11Km85MPiYbuPmG7Lz2Wjg'
-      }
-    };
-  </script>
-  <!-- IMPORTANTE: ?v=4 quebra o cache do GitHub Pages -->
-  <script defer src="assets/app.js?v=4"></script>
+  <script type="module" src="assets/app.js"></script>
 </body>
 </html>
