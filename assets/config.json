@@ -1,6 +1,6 @@
 {
   "proxy": {
-    "workerBase": "/api"
+    "workerBase": "https://rescuechurch.com.br"
   },
   "biblia": {
     "defaultVersion": "POR-NVI",
