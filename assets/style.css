@@ -71,7 +71,7 @@ h3{ margin-top:24px; margin-bottom:12px; font-size:1.3rem; border-bottom:1px sol
   background-image:url('logo.png');
   background-repeat:no-repeat;
   background-position:left center;  /* ancora o logo na esquerda */
-  background-size:cover;          /* mostra o logo inteiro */
+  background-size:80% auto;          /* mostra o logo inteiro */
 }
 
 /* Faixa do QR ocupando todo o lado direito (topo->base) */
