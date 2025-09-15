@@ -54,34 +54,36 @@ body {
 h2 { margin: 0; font-size: 1.6rem; }
 h3 { margin-top: 24px; margin-bottom: 12px; font-size: 1.3rem; border-bottom: 1px solid rgba(255,255,255,.1); padding-bottom: 8px; }
 
-/* SEÇÃO HERO (TOPO) - CAMINHO DO LOGO E TAMANHO DO QR CODE CORRIGIDOS */
+/* SEÇÃO HERO (TOPO) - LOGO COMO FUNDO + QR CODE NA DIREITA */
 .hero {
   position: relative;
-  height: 280px;
+  height: 320px;   /* altura maior para destacar */
   padding: 0;
   overflow: hidden;
-  /* CAMINHO CORRIGIDO: como style.css e logo.png estão na mesma pasta (assets), o caminho é direto */
-  background-image: url('logo.png');
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
+  background: url('logo.png') no-repeat center center;
+  background-size: cover; /* preenche todo o painel com a logo */
 }
 
 .qr-badge {
   position: absolute;
-  top: 16px;
-  right: 16px;
-  width: 140px; /* Tamanho final aumentado */
-  height: 140px; /* Tamanho final aumentado */
+  top: 0;
+  right: 0;
+  width: 180px;    /* largura fixa */
+  height: 100%;    /* ocupa toda a altura do hero */
   padding: 8px;
-  border-radius: 16px;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  transition: transform 0.2s ease;
+  border-radius: 0;
+  background: rgba(0, 0, 0, 0.5); /* contraste para não sumir */
+  backdrop-filter: blur(4px);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.qr-badge:hover { transform: scale(1.05); }
-.qr-badge img { width: 100%; height: 100%; border-radius: 12px; }
+.qr-badge img {
+  max-width: 100%;
+  max-height: 90%;
+  border-radius: 12px;
+}
 
 /* VERSÍCULO DO DIA */
 #vdia { text-align: center; }
@@ -173,7 +175,7 @@ h3 { margin-top: 24px; margin-bottom: 12px; font-size: 1.3rem; border-bottom: 1p
 .yt-player iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 .yt-close {
   position: absolute; right: 10px; top: 10px; z-index: 10; background: rgba(0,0,0,.5);
-  color: #fff; border: 1px solid rgba(255,255,255,.25); border-radius: 50%;
+  color: #fff; border: 1px solid rgba(255, 255, 255,.25); border-radius: 50%;
   width: 32px; height: 32px; cursor: pointer;
 }
 
@@ -190,6 +192,6 @@ h3 { margin-top: 24px; margin-bottom: 12px; font-size: 1.3rem; border-bottom: 1p
     justify-content: center;
     width: 100%;
   }
-  .qr-badge { width: 110px; height: 110px; top: 10px; right: 10px; }
+  .qr-badge { width: 110px; height: auto; top: 0; bottom: 0; }
   .verse { font-size: 1.3rem; }
 }
