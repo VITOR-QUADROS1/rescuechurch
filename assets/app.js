@@ -1,4 +1,4 @@
-/* assets/app.js - v12.2 (com playlist Gospel) */
+/* assets/app.js - v12.3 (playlist Gospel + Instagram) */
 const $ = (q) => document.querySelector(q);
 
 // --- FUNÇÕES GLOBAIS ---
@@ -106,6 +106,28 @@ async function loadExtraPlaylists() {
     }
 }
 
+// --- NOVO: Instagram (10 últimos vídeos) ---
+const escapeHtml = (s="") => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const cardIG = (p) => {
+    const title = escapeHtml((p.title || "Vídeo no Instagram").trim());
+    const date  = p.published ? new Date(p.published).toLocaleDateString("pt-BR") : "";
+    const thumb = p.thumb || "";
+    return `
+    <a class="yt-card" href="${p.permalink}" target="_blank" rel="noopener">
+      <img loading="lazy" class="yt-thumb" src="${thumb}" alt="Vídeo do Instagram">
+      <div class="yt-info">
+        <div class="yt-title">${title}</div>
+        <div class="yt-date">${date}</div>
+      </div>
+    </a>`;
+};
+async function loadInstagram() {
+    const box = $("#insta"); if (!box) return;
+    const j = await fetchJSON(api(`/instagram?max=10&t=${Date.now()}`));
+    box.innerHTML = (j?.items || []).map(cardIG).join("") || "<div class='muted' style='padding:8px'>Sem vídeos do Instagram no momento.</div>";
+    setupCarousel(box.parentElement);
+}
+
 // --- CARROSSEL ---
 function setupCarousel(carouselEl) {
     const track = carouselEl.querySelector('.hscroll');
@@ -176,5 +198,6 @@ function wireEventListeners() {
     await loadCfg();
     mountVersions();
     await Promise.all([loadVDay(), loadLiveOrLatest()]);
-    await loadExtraPlaylists(); // << adiciona a seção “Gospel”
+    await loadExtraPlaylists();   // Gospel
+    await loadInstagram();        // Instagram (10 vídeos)
 })();
