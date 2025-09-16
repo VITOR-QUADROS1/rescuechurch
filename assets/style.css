@@ -166,12 +166,11 @@ h3{ margin-top:24px; margin-bottom:12px; font-size:1.3rem; border-bottom:1px sol
 .footer{
   padding:28px 0;
   color:var(--muted);
-  /* alinhamento central dos ícones acima do texto */
-  display:flex;
+  display:flex;           /* centraliza ícones e © em coluna */
   flex-direction:column;
   align-items:center;
   justify-content:center;
-  gap:12px;              /* espaço entre ícones e o © */
+  gap:12px;
   text-align:center;
 }
 
@@ -191,10 +190,10 @@ h3{ margin-top:24px; margin-bottom:12px; font-size:1.3rem; border-bottom:1px sol
   justify-content:center;
   align-items:center;
   gap:12px;
-  margin:0;               /* centralizado; usamos o gap do .footer */
+  margin:0;               /* usamos o gap do .footer */
 }
 .social-btn{
-  --size:40px;                  /* tamanho no rodapé */
+  --size:40px;
   width:var(--size);
   height:var(--size);
   border-radius:9999px;
@@ -223,3 +222,65 @@ h3{ margin-top:24px; margin-bottom:12px; font-size:1.3rem; border-bottom:1px sol
   transform:translateY(-2px) scale(1.02);
 }
 /* ===== /Redes sociais ===== */
+
+
+/* ===== Mural / galeria (NOVO) ===== */
+.gallery-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+  gap:16px;
+}
+.gallery-item{
+  position:relative;
+  overflow:hidden;
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,.08);
+  background:#000;
+}
+.gallery-item img{
+  width:100%; height:220px; object-fit:cover; display:block;
+  transition:transform .35s ease;
+}
+.gallery-item:hover img{ transform:scale(1.05); }
+.gallery-caption{
+  position:absolute; left:0; right:0; bottom:0;
+  padding:10px 12px;
+  background:linear-gradient(to top, rgba(0,0,0,.55), rgba(0,0,0,0));
+  font-size:.95rem;
+}
+
+/* Modal da imagem */
+.img-modal[hidden]{ display:none; }
+.img-modal{
+  position:fixed; inset:0; z-index:60;
+  display:grid; place-items:center;
+  background:rgba(0,0,0,.75);
+  backdrop-filter:blur(4px);
+  padding:20px;
+}
+.img-box{
+  position:relative;
+  width:min(1100px,95vw);
+  max-height:90vh;
+  background:var(--card);
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:16px;
+  overflow:hidden;
+  box-shadow:0 20px 60px rgba(0,0,0,.55);
+}
+.img-box figure{ margin:0; }
+.img-box img{ width:100%; height:auto; display:block; }
+.img-caption{ padding:10px 14px; color:var(--muted); font-size:.95rem; }
+.img-close{
+  position:absolute; right:12px; top:12px;
+  width:34px; height:34px; border-radius:50%;
+  border:1px solid rgba(255,255,255,.25);
+  background:rgba(0,0,0,.5); color:#fff; cursor:pointer;
+}
+
+/* Cards de recados */
+.pin-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px; }
+.pin{ background:var(--input-bg); border:1px solid rgba(255,255,255,.08); border-radius:14px; padding:14px; }
+.pin h4{ margin:0 0 6px; font-size:1.05rem; }
+.pin p{ margin:0; color:var(--muted); font-size:.95rem; }
+/* ===== /Mural ===== */
