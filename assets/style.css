@@ -32,7 +32,7 @@ body{
   background:rgba(16,20,30,.7);
   backdrop-filter:blur(12px);
   border-bottom:1px solid rgba(255,255,255,.08);
-  display:flex; align-items:center; justify-content:space-between; gap:24px;
+  display:flex; align-items:center; justify-content:space-between; gap:24px; /* menu à direita */
 }
 .brand{ display:flex; align-items:center; gap:12px; font-weight:600; font-size:1.1rem; }
 .brand-link{ text-decoration:none; color:var(--text); }
@@ -166,7 +166,7 @@ h3{ margin-top:24px; margin-bottom:12px; font-size:1.3rem; border-bottom:1px sol
 .footer{
   padding:28px 0;
   color:var(--muted);
-  display:flex;           /* centraliza ícones e © em coluna */
+  display:flex;
   flex-direction:column;
   align-items:center;
   justify-content:center;
@@ -190,7 +190,7 @@ h3{ margin-top:24px; margin-bottom:12px; font-size:1.3rem; border-bottom:1px sol
   justify-content:center;
   align-items:center;
   gap:12px;
-  margin:0;               /* usamos o gap do .footer */
+  margin:0;
 }
 .social-btn{
   --size:40px;
@@ -211,7 +211,7 @@ h3{ margin-top:24px; margin-bottom:12px; font-size:1.3rem; border-bottom:1px sol
   box-shadow:0 1px 0 rgba(255,255,255,0.08) inset, 0 10px 22px rgba(0,0,0,0.35);
 }
 .social-btn svg{ width:20px; height:20px; display:block; }
-/* Cores das marcas nos ícones */
+/* Cores das marcas */
 .social-btn.instagram{ color:#E1306C; }
 .social-btn.youtube{   color:#FF0033; }
 .social-btn.facebook{  color:#1877F2; }
@@ -221,10 +221,8 @@ h3{ margin-top:24px; margin-bottom:12px; font-size:1.3rem; border-bottom:1px sol
   outline-offset:3px;
   transform:translateY(-2px) scale(1.02);
 }
-/* ===== /Redes sociais ===== */
 
-
-/* ===== Mural / galeria (NOVO) ===== */
+/* ===== Mural / galeria ===== */
 .gallery-grid{
   display:grid;
   grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
@@ -249,7 +247,7 @@ h3{ margin-top:24px; margin-bottom:12px; font-size:1.3rem; border-bottom:1px sol
   font-size:.95rem;
 }
 
-/* Modal da imagem */
+/* Modal da imagem do mural */
 .img-modal[hidden]{ display:none; }
 .img-modal{
   position:fixed; inset:0; z-index:60;
@@ -278,9 +276,8 @@ h3{ margin-top:24px; margin-bottom:12px; font-size:1.3rem; border-bottom:1px sol
   background:rgba(0,0,0,.5); color:#fff; cursor:pointer;
 }
 
-/* Cards de recados */
+/* Cards de recados do mural */
 .pin-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px; }
 .pin{ background:var(--input-bg); border:1px solid rgba(255,255,255,.08); border-radius:14px; padding:14px; }
 .pin h4{ margin:0 0 6px; font-size:1.05rem; }
 .pin p{ margin:0; color:var(--muted); font-size:.95rem; }
-/* ===== /Mural ===== */
