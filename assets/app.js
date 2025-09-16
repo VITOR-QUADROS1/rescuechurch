@@ -1,4 +1,4 @@
-/* assets/app.js - v12.1 (Corrigido) */
+/* assets/app.js - v12.2 (com playlist Gospel) */
 const $ = (q) => document.querySelector(q);
 
 // --- FUNÇÕES GLOBAIS ---
@@ -99,6 +99,13 @@ async function loadLiveOrLatest() {
     if (CFG?.youtube?.shortsPlaylist) await fillPlaylist(CFG.youtube.shortsPlaylist, "#shorts");
 }
 
+// --- NOVO: carregar a playlist “Gospel” ---
+async function loadExtraPlaylists() {
+    if (CFG?.youtube?.gospelPlaylist) {
+        await fillPlaylist(CFG.youtube.gospelPlaylist, "#gospel");
+    }
+}
+
 // --- CARROSSEL ---
 function setupCarousel(carouselEl) {
     const track = carouselEl.querySelector('.hscroll');
@@ -169,4 +176,5 @@ function wireEventListeners() {
     await loadCfg();
     mountVersions();
     await Promise.all([loadVDay(), loadLiveOrLatest()]);
+    await loadExtraPlaylists(); // << adiciona a seção “Gospel”
 })();
