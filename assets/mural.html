@@ -7,6 +7,50 @@
   <meta name="theme-color" content="#10141E">
   <link rel="icon" href="logo.png">
   <link rel="stylesheet" href="style.css">
+
+  <!-- Ajuste do modal para a imagem caber na viewport SEM cortes -->
+  <style>
+    /* Caixa do modal: deixa elástica e sem cortes */
+    .img-box{
+      width:auto;
+      max-width:96vw;
+      max-height:92vh;
+      padding:0;
+      background:transparent;      /* usa o backdrop do modal */
+      border:none;
+      box-shadow:none;
+      overflow:visible;            /* importante: evitar corte */
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+    }
+    .img-box figure{ margin:0; }
+
+    /* A imagem passa a “conter” dentro da viewport */
+    .img-box img{
+      display:block;
+      width:auto;                  /* deixa o browser decidir */
+      height:auto;
+      max-width:96vw;              /* limita por largura da tela */
+      max-height:90vh;             /* e por altura da tela */
+      object-fit:contain;          /* mantém proporção SEM esticar */
+      border-radius:12px;
+      background:#000;             /* base neutra em volta */
+    }
+
+    /* Legenda opcional */
+    .img-caption{
+      margin-top:8px;
+      padding:6px 10px;
+      background:rgba(0,0,0,.55);
+      border-radius:10px;
+      text-align:center;
+    }
+
+    /* Botão de fechar mais próximo da borda da imagem */
+    .img-close{ right:8px; top:8px; }
+  </style>
 </head>
 <body>
   <!-- Topbar igual ao site principal -->
@@ -50,7 +94,7 @@
   <div id="imgModal" class="img-modal" hidden>
     <div class="img-box">
       <button class="img-close" aria-label="Fechar">✕</button>
-      <figure style="margin:0">
+      <figure>
         <img id="imgFull" src="" alt="" />
         <figcaption id="imgCaption" class="img-caption"></figcaption>
       </figure>
@@ -58,29 +102,25 @@
   </div>
 
   <script>
-    // LISTA DO MURAL (arquivos em /assets/mural/)
+    // 1) LISTA DO MURAL: adicione aqui suas imagens (caminhos relativos a /assets)
     const GALLERY = [
       { src: "mural/arca-na-minha-casa.jpg", title: "Arca na minha casa" },
-      { src: "mural/domingo.jpg",            title: "Culto de domingo" },
-      { src: "mural/sexta-feira.jpg",        title: "Sexta-feira" }
+      { src: "mural/domingo.jpg",           title: "Culto de domingo" },
+      { src: "mural/sexta-feira.jpg",       title: "Sexta-feira forte" },
+      // Acrescente mais linhas conforme fizer upload em assets/mural/
+      // { src: "mural/batismos.jpg",        title: "Batismos" },
     ];
 
-    // Renderiza cards
+    // 2) Renderiza os cards na grade
     const $grid = document.getElementById('gallery');
     $grid.innerHTML = GALLERY.map((item, i) => `
       <a href="${item.src}" class="gallery-item" data-index="${i}" title="${item.title}">
-        <img
-          src="${item.src}"
-          alt="${item.title}"
-          loading="lazy"
-          decoding="async"
-          onerror="this.style.opacity=0; this.nextElementSibling.textContent='Imagem não encontrada';"
-        >
+        <img src="${item.src}" alt="${item.title}">
         <div class="gallery-caption">${item.title}</div>
       </a>
     `).join('');
 
-    // Modal: abre/fecha e navegação
+    // 3) Modal: abre/fecha e navegação
     const $modal    = document.getElementById('imgModal');
     const $imgFull  = document.getElementById('imgFull');
     const $caption  = document.getElementById('imgCaption');
@@ -104,21 +144,15 @@
     function nextImg() {
       if (!GALLERY.length) return;
       current = (current + 1) % GALLERY.length;
-      const it = GALLERY[current];
-      $imgFull.src = it.src;
-      $imgFull.alt = it.title;
-      $caption.textContent = it.title || '';
+      openModal(current);
     }
     function prevImg() {
       if (!GALLERY.length) return;
       current = (current - 1 + GALLERY.length) % GALLERY.length;
-      const it = GALLERY[current];
-      $imgFull.src = it.src;
-      $imgFull.alt = it.title;
-      $caption.textContent = it.title || '';
+      openModal(current);
     }
 
-    // Clique nos cards
+    // Click nos cards
     $grid.addEventListener('click', (ev) => {
       const a = ev.target.closest('a.gallery-item');
       if (!a) return;
@@ -127,7 +161,7 @@
       if (!Number.isNaN(i)) openModal(i);
     });
 
-    // Fechar modal (botão, overlay, ESC) e setas
+    // Fechar modal (botão, overlay, ESC e setas)
     $closeBtn.addEventListener('click', closeModal);
     $modal.addEventListener('click', (ev) => { if (ev.target === $modal) closeModal(); });
     window.addEventListener('keydown', (ev) => {
