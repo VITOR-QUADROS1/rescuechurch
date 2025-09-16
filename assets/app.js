@@ -55,7 +55,6 @@ async function searchBible() {
     const q = (qEl.value || "").trim(); if (!q) { qEl.focus(); return; }
     out.value = "Buscando…"; btn && btn.classList.add("is-loading");
     try {
-        // AJUSTE APLICADO: Pega o valor da versão selecionada e o usa na requisição.
         const verEl = $("#biblia-ver");
         const version = verEl ? verEl.value : 'POR-NVI';
 
@@ -103,14 +102,12 @@ async function loadLiveOrLatest() {
     if (CFG?.youtube?.shortsPlaylist) await fillPlaylist(CFG.youtube.shortsPlaylist, "#shorts");
 }
 
-// --- NOVO: carregar a playlist “Gospel” ---
 async function loadExtraPlaylists() {
     if (CFG?.youtube?.gospelPlaylist) {
         await fillPlaylist(CFG.youtube.gospelPlaylist, "#gospel");
     }
 }
 
-// --- NOVO: Instagram (10 últimos vídeos) ---
 const escapeHtml = (s="") => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const cardIG = (p) => {
     const title = escapeHtml((p.title || "Vídeo no Instagram").trim());
@@ -156,21 +153,79 @@ function setupCarousel(carouselEl) {
     carouselEl.appendChild(mkBtn("next"));
 }
 
-// --- MODAL DE VÍDEO ---
+// --- MODAL DE VÍDEO (REESTRUTURADO) ---
 const modal = $("#ytModal");
-const iframe = $("#ytFrame");
-function openModal(videoId) {
-    if (!modal || !iframe) return;
-    iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
-    modal.hidden = false;
-    document.body.style.overflow = "hidden";
+let ytPlayer;
+let currentPlaylist = [];
+let currentIndex = -1;
+
+// 1. A API do YouTube chama esta função quando está pronta.
+window.onYouTubeIframeAPIReady = function() {
+  ytPlayer = new YT.Player('ytFrame', {
+    height: '100%',
+    width: '100%',
+    playerVars: { 'autoplay': 1, 'rel': 0 },
+    events: {
+      'onStateChange': onPlayerStateChange
+    }
+  });
 }
+
+// 2. Esta função é chamada sempre que o estado do player muda.
+function onPlayerStateChange(event) {
+  // Se o vídeo terminou (estado 0), toca o próximo
+  if (event.data === YT.PlayerState.ENDED) {
+    playNextVideo();
+  }
+}
+
+function openModal(playlist, index) {
+    if (!modal || !ytPlayer) return;
+
+    currentPlaylist = playlist;
+    currentIndex = index;
+    
+    const videoId = currentPlaylist[currentIndex];
+    if (videoId) {
+        ytPlayer.loadVideoById(videoId);
+        modal.hidden = false;
+        document.body.style.overflow = "hidden";
+        updateNavButtons();
+    }
+}
+
 function closeModal() {
-    if (!modal || !iframe) return;
-    iframe.src = "";
+    if (!modal || !ytPlayer) return;
+    ytPlayer.stopVideo();
     modal.hidden = true;
     document.body.style.overflow = "";
+    currentPlaylist = [];
+    currentIndex = -1;
 }
+
+function playNextVideo() {
+    if (currentIndex < currentPlaylist.length - 1) {
+        currentIndex++;
+        ytPlayer.loadVideoById(currentPlaylist[currentIndex]);
+        updateNavButtons();
+    } else {
+        closeModal(); // Fecha o modal se for o último vídeo
+    }
+}
+
+function playPrevVideo() {
+    if (currentIndex > 0) {
+        currentIndex--;
+        ytPlayer.loadVideoById(currentPlaylist[currentIndex]);
+        updateNavButtons();
+    }
+}
+
+function updateNavButtons() {
+    $('#yt-prev').hidden = currentIndex <= 0;
+    $('#yt-next').hidden = currentIndex >= currentPlaylist.length - 1;
+}
+
 
 // --- INICIALIZAÇÃO ---
 function wireEventListeners() {
@@ -185,7 +240,13 @@ function wireEventListeners() {
         const card = e.target.closest(".yt-card[data-vid]");
         if (card) {
             e.preventDefault();
-            openModal(card.dataset.vid);
+            // Coleta todos os vídeos do carrossel atual
+            const carousel = card.closest('.hscroll');
+            const allVideos = [...carousel.querySelectorAll('.yt-card[data-vid]')];
+            const playlist = allVideos.map(v => v.dataset.vid);
+            const index = allVideos.findIndex(v => v.dataset.vid === card.dataset.vid);
+            
+            openModal(playlist, index);
         }
         if (e.target.closest(".yt-close") || e.target === modal) {
             closeModal();
@@ -194,6 +255,10 @@ function wireEventListeners() {
 
     window.addEventListener("keydown", (e) => { if (e.key === "Escape") closeModal(); });
     
+    // Listeners para os novos botões de navegação
+    $('#yt-prev')?.addEventListener('click', playPrevVideo);
+    $('#yt-next')?.addEventListener('click', playNextVideo);
+
     $("#yy") && ($("#yy").textContent = new Date().getFullYear());
 }
 
