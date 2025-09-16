@@ -62,8 +62,23 @@ body{
   margin-bottom:20px;
   padding:24px;
 }
-.section-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
-h2{ margin:0; font-size:1.6rem; }
+/* AJUSTE APLICADO AQUI para centralizar o título corretamente */
+.section-head{
+  position:relative; /* Necessário para posicionar o h2 de forma absoluta */
+  display:flex;
+  align-items:center;
+  justify-content:flex-end; /* Alinha itens (ex: botão 'Copiar') à direita */
+  margin-bottom:16px;
+  min-height: 32px; /* Garante altura mínima para o alinhamento */
+}
+.section-head h2{
+  position:absolute; /* Permite centralização perfeita */
+  left:50%;
+  transform:translateX(-50%);
+  margin:0;
+  padding:0;
+}
+
 h3{ margin-top:24px; margin-bottom:12px; font-size:1.3rem; border-bottom:1px solid rgba(255,255,255,.1); padding-bottom:8px; }
 
 /* ================= HERO ================= */
@@ -188,9 +203,9 @@ h3{ margin-top:24px; margin-bottom:12px; font-size:1.3rem; border-bottom:1px sol
    ============== */
 .yt-modal[hidden]{ display:none; }
 .yt-modal{ position:fixed; inset:0; z-index:50; background:rgba(0,0,0,.7); backdrop-filter:blur(5px); display:grid; place-items:center; padding:20px; }
-.yt-box{ width:min(900px, 92vw); background:var(--card); border:1px solid rgba(255,255,255,.1); border-radius:18px; box-shadow:0 20px 60px rgba(0,0,0,.5); padding:16px; }
+.yt-box{ position: relative; width:min(900px, 92vw); background:var(--card); border:1px solid rgba(255,255,255,.1); border-radius:18px; box-shadow:0 20px 60px rgba(0,0,0,.5); padding:16px; }
 .yt-player{ position:relative; padding-top:56.25%; border-radius:12px; overflow:hidden; }
-.yt-player iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; }
+.yt-player #ytFrame{ position:absolute; inset:0; width:100%; height:100%; border:0; }
 .yt-close{ position:absolute; right:10px; top:10px; z-index:10; background:rgba(0,0,0,.5); color:#fff; border:1px solid rgba(255,255,255,.25); border-radius:50%; width:32px; height:32px; cursor:pointer; }
 
 /* ===== Redes sociais (rodapé) ===== */
@@ -292,7 +307,6 @@ h3{ margin-top:24px; margin-bottom:12px; font-size:1.3rem; border-bottom:1px sol
 /* =========================================================
    AJUSTES MOBILE DO MENU + ÂNCORAS
    ========================================================= */
-
 @media (max-width: 900px){
   .topbar-inner{
     flex-direction:column;     /* vira 2 linhas */
@@ -322,8 +336,21 @@ h3{ margin-top:24px; margin-bottom:12px; font-size:1.3rem; border-bottom:1px sol
   #inicio, #vdia, #buscar, #videos{ scroll-margin-top: 130px; }
 }
 
-.card.section .section-head h2{
-  margin: 0 auto;          /* força o h2 a ficar no centro mesmo com flex */
-  width: fit-content;
+/* CÓDIGO RESTAURADO: Navegação do Modal de Vídeo */
+#yt-prev, #yt-next {
+  /* Estes botões usam a classe .carousel-nav, então já pegam parte do estilo */
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 20; /* Fica acima do vídeo mas abaixo do botão de fechar */
+  opacity: 1; /* Garante que fiquem visíveis */
+  visibility: visible;
 }
+#yt-prev { left: -50px; }
+#yt-next { right: -50px; }
 
+/* Ajusta a posição dos botões em telas menores para ficarem dentro do modal */
+@media (max-width: 1024px) {
+  #yt-prev { left: 8px; }
+  #yt-next { right: 8px; }
+}
