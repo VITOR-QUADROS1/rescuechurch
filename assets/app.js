@@ -55,19 +55,16 @@ async function searchBible() {
     const q = (qEl.value || "").trim(); if (!q) { qEl.focus(); return; }
     out.value = "Buscando…"; btn && btn.classList.add("is-loading");
     try {
-        // AJUSTE APLICADO AQUI
-        // Pega o valor da versão selecionada (ex: "POR-NVI") do dropdown.
+        // AJUSTE APLICADO: Pega o valor da versão selecionada e o usa na requisição.
         const verEl = $("#biblia-ver");
-        const version = verEl ? verEl.value : 'POR-NVI'; // Usa um valor padrão caso não encontre
+        const version = verEl ? verEl.value : 'POR-NVI';
 
-        // Usa a variável 'version' na URL da requisição.
         const r = await fetch(api(`/biblia/bible/content/${version}.txt?passage=${encodeURIComponent(q)}&lang=pt&t=${Date.now()}`));
         out.value = r.ok ? (await r.text()).trim() : "Nenhum resultado encontrado.";
     } catch (e) {
         out.value = "Erro ao buscar. Ex.: João 3:16";
     } finally { btn && btn.classList.remove("is-loading"); }
 }
-
 
 // --- YOUTUBE ---
 const cardVideo = (v) => {
