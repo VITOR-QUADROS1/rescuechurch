@@ -3,129 +3,198 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Mural — Igreja de Resgate</title>
+  <title>Mural – Igreja de Resgate</title>
   <meta name="theme-color" content="#10141E">
-  <link rel="icon" href="assets/logo.png">
-  <link rel="stylesheet" href="assets/style.css">
+  <link rel="icon" href="logo.png">
+  <!-- herda sua paleta e tipografia -->
+  <link rel="stylesheet" href="style.css">
+
+  <style>
+    /* ===== Estilos específicos do mural (isolados) ===== */
+    .mural-topbar{
+      position:sticky; top:0; z-index:10;
+      padding:16px 24px;
+      background:rgba(16,20,30,.7);
+      backdrop-filter:blur(12px);
+      border-bottom:1px solid rgba(255,255,255,.08);
+      display:flex; align-items:center; justify-content:space-between; gap:24px;
+    }
+    .mural-brand{ display:flex; align-items:center; gap:12px; font-weight:600; font-size:1.1rem; color:var(--text); text-decoration:none; }
+    .mural-brand img{ width:32px; height:32px; border-radius:8px; }
+
+    .mural-container{ max-width:1000px; margin:0 auto; padding:24px 16px; }
+    .mural-card{
+      background:var(--card);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:24px;
+      box-shadow:0 10px 40px rgba(0,0,0,.2);
+      padding:24px;
+    }
+    .mural-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; }
+    .mural-head h1{ margin:0; font-size:1.6rem; }
+
+    .mural-grid{
+      display:grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap:16px;
+    }
+    .mural-item{
+      position:relative;
+      border-radius:16px;
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.08);
+      background:var(--input-bg);
+      cursor:pointer;
+      transition:transform .18s ease, box-shadow .18s ease;
+    }
+    .mural-item:hover{
+      transform:translateY(-3px);
+      box-shadow:0 10px 24px rgba(0,0,0,.35);
+    }
+    .mural-item img{
+      width:100%; height:220px; object-fit:cover; display:block;
+    }
+    .mural-cap{
+      position:absolute; left:0; right:0; bottom:0;
+      padding:10px 12px;
+      background:linear-gradient(180deg, transparent, rgba(0,0,0,.6));
+      font-size:.95rem; color:#e8ecf8;
+    }
+
+    /* Viewer (lightbox) */
+    .mural-viewer[hidden]{ display:none; }
+    .mural-viewer{
+      position:fixed; inset:0; z-index:60;
+      background:rgba(0,0,0,.75);
+      backdrop-filter:blur(5px);
+      display:grid; place-items:center; padding:22px;
+    }
+    .mural-viewer-box{
+      width:min(1200px, 94vw);
+      background:var(--card);
+      border:1px solid rgba(255,255,255,.1);
+      border-radius:18px;
+      box-shadow:0 20px 60px rgba(0,0,0,.5);
+      padding:12px;
+      position:relative;
+    }
+    .mural-view{
+      position:relative; width:100%;
+      aspect-ratio:16/9; border-radius:12px; overflow:hidden; background:#000;
+    }
+    .mural-view img{ position:absolute; inset:0; width:100%; height:100%; object-fit:contain; background:#000; }
+
+    .mural-vclose, .mural-prev, .mural-next{
+      position:absolute; z-index:5;
+      background:rgba(0,0,0,.55); color:#fff;
+      border:1px solid rgba(255,255,255,.25);
+      border-radius:999px; width:36px; height:36px;
+      display:grid; place-items:center; cursor:pointer;
+    }
+    .mural-vclose{ top:10px; right:10px; }
+    .mural-prev{ left:10px; top:50%; transform:translateY(-50%); }
+    .mural-next{ right:10px; top:50%; transform:translateY(-50%); }
+
+    .mural-footer{
+      margin-top:14px; display:flex; align-items:center; justify-content:space-between; gap:12px; color:var(--muted);
+      font-size:.95rem; padding:0 4px 2px;
+    }
+    .mural-back{
+      color:var(--muted); text-decoration:none; font-weight:600;
+    }
+    .mural-back:hover{ color:var(--text); }
+  </style>
 </head>
 <body>
-  <header class="topbar">
-    <a href="https://www.youtube.com/channel/UC11Km85MPiYbuPmG7Lz2Wjg" target="_blank" rel="noopener" class="brand-link">
-      <div class="brand">
-        <img src="assets/logo.png" class="brand-logo" alt="Rescue Church">
-        <span>Igreja de Resgate</span>
-      </div>
+
+  <!-- Topo do Mural -->
+  <header class="mural-topbar">
+    <a class="mural-brand" href="../">
+      <img src="logo.png" alt="Rescue Church">
+      <span>Igreja de Resgate</span>
     </a>
-    <nav class="menu">
-      <a href="index.html#inicio">Início</a>
-      <a href="index.html#vdia">Versículo do Dia</a>
-      <a href="index.html#buscar">Buscar na Bíblia</a>
-      <a href="index.html#videos">Vídeos & Lives</a>
-      <a href="mural.html">Mural</a>
-    </nav>
+    <a class="mural-back" href="../">← Voltar ao site</a>
   </header>
 
-  <main class="container">
-    <section class="card">
-      <div class="section-head">
-        <h2>Mural</h2>
+  <main class="mural-container">
+    <section class="mural-card">
+      <div class="mural-head">
+        <h1>Mural da Comunidade</h1>
+        <span class="muted">Momentos especiais, eventos e avisos</span>
       </div>
-      <p class="muted" style="margin-top:0">
-        Espaço para fotos da comunidade, eventos e avisos rápidos. Clique nas imagens para ampliar.
-      </p>
-      <div id="gallery" class="gallery-grid"><!-- preenchido via JS --></div>
-    </section>
 
-    <section class="card">
-      <h3>Recados</h3>
-      <div class="pin-grid">
-        <div class="pin">
-          <h4>Agenda da Semana</h4>
-          <p>Qua 19h — Células · Sex 20h — Ensaio de louvor · Dom 19h — Culto.</p>
-        </div>
-        <div class="pin">
-          <h4>Pedido de Oração</h4>
-          <p>Envie pelo WhatsApp ou deixe seu pedido no balcão de boas-vindas.</p>
-        </div>
-        <div class="pin">
-          <h4>PIX / Semeadores</h4>
-          <p>Chave: <strong>pix@rescuechurch.com.br</strong></p>
-        </div>
+      <div id="muralGrid" class="mural-grid"><!-- JS preenche --></div>
+
+      <div class="mural-footer">
+        <span>Dica: clique para ampliar · use ← → · ESC para fechar</span>
+        <a class="mural-back" href="../">Voltar ao início</a>
       </div>
     </section>
-
-    <footer class="footer">
-      <nav class="social-links" aria-label="Redes sociais">
-        <a class="social-btn instagram" href="https://www.instagram.com/comunidaderescuechurch/?igsh=aDdlbjl0bnRrdWoy#" target="_blank" rel="noopener" aria-label="Abrir Instagram">
-          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
-            <path fill="currentColor" d="M7 2C4.243 2 2 4.243 2 7v10c0 2.757 2.243 5 5 5h10c2.757 0 5-2.243 5-5V7c0-2.757-2.243-5-5-5H7zm10 2a3 3 0 013 3v10a3 3 0 01-3 3H7a3 3 0 01-3-3V7a3 3 0 013-3h10zm-5 3a5 5 0 100 10 5 5 0 000-10zm0 2a3 3 0 110 6 3 3 0 010-6zm5.5-2a1.5 1.5 0 100 3 1.5 1.5 0 000-3z"/>
-          </svg>
-        </a>
-        <a class="social-btn youtube" href="https://www.youtube.com/@RescueChuchoficial" target="_blank" rel="noopener" aria-label="Abrir YouTube">
-          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
-            <path fill="currentColor" d="M23.5 6.2a3 3 0 00-2.1-2.1C19.4 3.5 12 3.5 12 3.5s-7.4 0-9.4.6A3 3 0 00.5 6.2 31.2 31.2 0 000 12a31.2 31.2 0 00.5 5.8 3 3 0 002.1 2.1c2 .6 9.4.6 9.4.6s7.4 0 9.4-.6a3 3 0 002.1-2.1A31.2 31.2 0 0024 12a31.2 31.2 0 00-.5-5.8zM9.75 15.02v-6l6 3-6 3z"/>
-          </svg>
-        </a>
-        <a class="social-btn facebook" href="https://www.facebook.com/comunidaderescuechurch" target="_blank" rel="noopener" aria-label="Abrir Facebook">
-          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
-            <path fill="currentColor" d="M22 12a10 10 0 10-11.6 9.9v-7h-2.2V12h2.2V9.8c0-2.1 1.2-3.3 3.1-3.3.9 0 1.8.16 1.8.16v2h-1c-1 0-1.3.62-1.3 1.3V12h2.3l-.37 2.9h-1.93v7A10 10 0 0022 12z"/>
-          </svg>
-        </a>
-      </nav>
-      <small>© <span id="yy"></span> Igreja de Resgate — feito com amor.</small>
-    </footer>
   </main>
 
-  <!-- Modal da imagem -->
-  <div id="imgModal" class="img-modal" hidden>
-    <div class="img-box">
-      <button id="imgClose" class="img-close" aria-label="Fechar">✕</button>
-      <figure>
-        <img id="imgFull" src="" alt="">
-        <figcaption id="imgCap" class="img-caption"></figcaption>
-      </figure>
+  <!-- Lightbox -->
+  <div id="muralViewer" class="mural-viewer" hidden>
+    <div class="mural-viewer-box">
+      <button id="btnClose" class="mural-vclose" title="Fechar">✕</button>
+      <button id="btnPrev" class="mural-prev" title="Anterior">‹</button>
+      <button id="btnNext" class="mural-next" title="Próxima">›</button>
+      <div class="mural-view">
+        <img id="viewerImg" alt="">
+      </div>
     </div>
   </div>
 
   <script>
-    // Ano no rodapé
-    document.getElementById('yy').textContent = new Date().getFullYear();
-
-    // Lista de imagens do diretório assets/mural/
+    // === Liste aqui as imagens do mural (dentro de assets/mural/) ===
     const IMGS = [
-      {src:'assets/mural/1.jpg', cap:'Momento de louvor'},
-      {src:'assets/mural/2.jpg', cap:'Culto de domingo'},
-      {src:'assets/mural/3.jpg', cap:'Batismos'},
-      {src:'assets/mural/4.jpg', cap:'Ministério infantil'},
-      {src:'assets/mural/5.jpg', cap:'Confraternização'},
-      {src:'assets/mural/6.jpg', cap:'Equipe de recepção'}
+      { src: 'mural/1.jpg', cap: 'Momento de louvor' },
+      { src: 'mural/2.jpg', cap: 'Culto de domingo' },
+      { src: 'mural/3.jpg', cap: 'Batismos' },
+      { src: 'mural/4.jpg', cap: 'Ministério infantil' },
+      { src: 'mural/5.jpg', cap: 'Confraternização' },
+      { src: 'mural/6.jpg', cap: 'Equipe de recepção' }
     ];
 
-    // Monta a galeria
-    const g = document.getElementById('gallery');
-    g.innerHTML = IMGS.map(i => `
-      <a href="#" class="gallery-item" data-src="${i.src}" data-cap="${i.cap}">
-        <img src="${i.src}" alt="${i.cap}">
-        <span class="gallery-caption">${i.cap}</span>
-      </a>
+    const grid = document.getElementById('muralGrid');
+    const viewer = document.getElementById('muralViewer');
+    const vImg = document.getElementById('viewerImg');
+    const btnClose = document.getElementById('btnClose');
+    const btnPrev = document.getElementById('btnPrev');
+    const btnNext = document.getElementById('btnNext');
+
+    // monta grid
+    grid.innerHTML = IMGS.map((it, i) => `
+      <figure class="mural-item" data-idx="${i}">
+        <img src="${it.src}" loading="lazy" alt="">
+        ${it.cap ? `<figcaption class="mural-cap">${it.cap}</figcaption>` : ''}
+      </figure>
     `).join('');
 
-    // Lightbox
-    const modal   = document.getElementById('imgModal');
-    const imgFull = document.getElementById('imgFull');
-    const imgCap  = document.getElementById('imgCap');
-    document.querySelectorAll('.gallery-item').forEach(a => {
-      a.addEventListener('click', e => {
-        e.preventDefault();
-        imgFull.src = a.dataset.src;
-        imgFull.alt = a.dataset.cap || '';
-        imgCap.textContent = a.dataset.cap || '';
-        modal.hidden = false;
-      });
+    // lightbox
+    let idx = 0;
+    function show(i){
+      idx = (i + IMGS.length) % IMGS.length;
+      vImg.src = IMGS[idx].src;
+      vImg.alt = IMGS[idx].cap || '';
+      viewer.hidden = false;
+    }
+    grid.addEventListener('click', (ev) => {
+      const fig = ev.target.closest('.mural-item');
+      if (!fig) return;
+      show(+fig.dataset.idx);
     });
-    document.getElementById('imgClose').onclick = () => modal.hidden = true;
-    modal.addEventListener('click', e => { if (e.target === modal) modal.hidden = true; });
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') modal.hidden = true; });
+    btnClose.onclick = () => viewer.hidden = true;
+    btnPrev.onclick = () => show(idx - 1);
+    btnNext.onclick = () => show(idx + 1);
+    viewer.addEventListener('click', (e) => {
+      if (e.target === viewer) viewer.hidden = true;
+    });
+    window.addEventListener('keydown', (e) => {
+      if (viewer.hidden) return;
+      if (e.key === 'Escape') viewer.hidden = true;
+      if (e.key === 'ArrowLeft') show(idx - 1);
+      if (e.key === 'ArrowRight') show(idx + 1);
+    });
   </script>
 </body>
 </html>
