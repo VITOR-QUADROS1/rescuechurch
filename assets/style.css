@@ -321,3 +321,9 @@ h3{ margin-top:24px; margin-bottom:12px; font-size:1.3rem; border-bottom:1px sol
 @media (max-width: 900px){
   #inicio, #vdia, #buscar, #videos{ scroll-margin-top: 130px; }
 }
+
+.card.section .section-head h2{
+  margin: 0 auto;          /* força o h2 a ficar no centro mesmo com flex */
+  width: fit-content;
+}
+
