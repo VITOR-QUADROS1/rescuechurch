@@ -9,7 +9,6 @@
   <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
-  <!-- Topbar (centralizada como o painel) -->
   <header class="topbar">
     <div class="topbar-inner">
       <a href="https://www.youtube.com/channel/UC11Km85MPiYbuPmG7Lz2Wjg" target="_blank" rel="noopener" class="brand-link">
@@ -29,14 +28,12 @@
   </header>
 
   <main class="container">
-    <!-- Hero -->
     <section id="inicio" class="hero card" aria-label="Destaque">
       <a class="qr-badge" href="assets/qrcode.jpg" target="_blank" rel="noopener" aria-label="Abrir QR Code Semeador">
         <img src="assets/qrcode.jpg" alt="QR code Semeador">
       </a>
     </section>
 
-    <!-- Versículo do dia -->
     <section id="vdia" class="card section" aria-labelledby="vdia-title">
       <div class="section-head">
         <h2 id="vdia-title">Versículo do dia</h2>
@@ -46,7 +43,6 @@
       <p id="vday-ref" class="muted"></p>
     </section>
 
-    <!-- Buscar na Bíblia -->
     <section id="buscar" class="card section" aria-labelledby="buscar-title">
       <h2 id="buscar-title">Buscar na Bíblia</h2>
       <div class="search-col">
@@ -58,7 +54,6 @@
       <textarea id="biblia-out" class="result" readonly aria-label="Resultado"></textarea>
     </section>
 
-    <!-- Vídeos & Lives -->
     <section id="videos" class="card section" aria-labelledby="videos-title">
       <h2 id="videos-title">Vídeos & Lives</h2>
 
@@ -99,7 +94,6 @@
       </div>
     </section>
 
-    <!-- Rodapé -->
     <footer class="footer">
       <nav class="social-links" aria-label="Redes sociais">
         <a class="social-btn instagram" href="https://www.instagram.com/comunidaderescuechurch/?igsh=aDdlbjl0bnRrdWoy#" target="_blank" rel="noopener" aria-label="Abrir Instagram">
@@ -122,16 +116,18 @@
     </footer>
   </main>
 
-  <!-- Modal YouTube -->
   <div id="ytModal" class="yt-modal" hidden>
     <div class="yt-box">
       <button class="yt-close" aria-label="Fechar">✕</button>
       <div class="yt-player">
-        <iframe id="ytFrame" src="" allow="autoplay; encrypted-media" allowfullscreen title="Player do vídeo"></iframe>
+        <div id="ytFrame"></div>
       </div>
+      <button id="yt-prev" class="carousel-nav prev" aria-label="Vídeo anterior">‹</button>
+      <button id="yt-next" class="carousel-nav next" aria-label="Próximo vídeo">›</button>
     </div>
   </div>
 
+  <script src="https://www.youtube.com/iframe_api"></script>
   <script type="module" src="assets/app.js"></script>
 </body>
 </html>
