@@ -174,3 +174,42 @@ h3{ margin-top:24px; margin-bottom:12px; font-size:1.3rem; border-bottom:1px sol
 .yt-player{ position:relative; padding-top:56.25%; border-radius:12px; overflow:hidden; }
 .yt-player iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; }
 .yt-close{ position:absolute; right:10px; top:10px; z-index:10; background:rgba(0,0,0,.5); color:#fff; border:1px solid rgba(255,255,255,.25); border-radius:50%; width:32px; height:32px; cursor:pointer; }
+
+/* ===== Redes sociais (rodapé) ===== */
+.social-footer { margin-top: 28px; }
+.social-links {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.social-btn {
+  --size: 56px;
+  width: var(--size);
+  height: var(--size);
+  border-radius: 9999px;
+  display: grid;
+  place-items: center;
+  background: rgba(255,255,255,0.04);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.06) inset, 0 6px 20px rgba(0,0,0,0.25);
+  color: #c8d1e0;
+  transition: transform .18s ease, box-shadow .18s ease, background .18s ease, color .18s ease;
+  text-decoration: none;
+}
+.social-btn svg { width: 28px; height: 28px; }
+.social-btn:hover {
+  transform: translateY(-2px);
+  background: rgba(255,255,255,0.08);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.08) inset, 0 10px 22px rgba(0,0,0,0.35);
+}
+/* Cores das marcas no ícone */
+.social-btn.instagram { color: #E1306C; }
+.social-btn.youtube   { color: #FF0033; }
+.social-btn.facebook  { color: #1877F2; }
+/* Acessibilidade */
+.social-btn:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+  transform: translateY(-2px) scale(1.02);
+}
+/* ===== /Redes sociais ===== */
