@@ -116,9 +116,9 @@
     // 2) Renderiza os cards na grade
     const $grid = document.getElementById('gallery');
     $grid.innerHTML = GALLERY.map((item, i) => `
-      <a href="${item.src}" class="gallery-item" data-index="${i}" title="${item.title}">
-        <img src="${item.src}" alt="${item.title}">
-        <div class="gallery-caption">${item.title}</div>
+      <a href="${item.src}" class="gallery-item" data-index="${i}">
+        <img src="${item.src}">
+        <div class="gallery-caption"></div>
       </a>
     `).join('');
 
