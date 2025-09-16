@@ -46,7 +46,7 @@
     </section>
   </main>
 
-  <!-- Modal de imagem (usa estilos já existentes no style.css) -->
+  <!-- Modal de imagem -->
   <div id="imgModal" class="img-modal" hidden>
     <div class="img-box">
       <button class="img-close" aria-label="Fechar">✕</button>
@@ -58,31 +58,29 @@
   </div>
 
   <script>
-    // 1) LISTA DO MURAL: adicione aqui suas imagens
-    //    → use caminhos relativos a partir desta página (assets/mural.html)
-    //    → evite espaços no nome do arquivo; se tiver, use %20 no caminho
+    // LISTA DO MURAL (arquivos em /assets/mural/)
     const GALLERY = [
-      { src: "mural/arca-na-minha-casa.jpg",  title: "Arca na minha casa" },
-      // Exemplo com espaço no nome do arquivo (se não quiser renomear):
-      // { src: "mural/Arca%20na%20minha%20casa.jpg", title: "Arca na minha casa" },
-
-      // Adicione mais linhas conforme subir arquivos em assets/mural/
-      // { src: "mural/momento-de-louvor.jpg", title: "Momento de louvor" },
-      // { src: "mural/batismos.jpg",          title: "Batismos" },
-      // { src: "mural/confraternizacao.jpg",  title: "Confraternização" },
-      // ...
+      { src: "mural/arca-na-minha-casa.jpg", title: "Arca na minha casa" },
+      { src: "mural/domingo.jpg",            title: "Culto de domingo" },
+      { src: "mural/sexta-feira.jpg",        title: "Sexta-feira" }
     ];
 
-    // 2) Renderiza os cards na grade
+    // Renderiza cards
     const $grid = document.getElementById('gallery');
     $grid.innerHTML = GALLERY.map((item, i) => `
       <a href="${item.src}" class="gallery-item" data-index="${i}" title="${item.title}">
-        <img src="${item.src}" alt="${item.title}">
+        <img
+          src="${item.src}"
+          alt="${item.title}"
+          loading="lazy"
+          decoding="async"
+          onerror="this.style.opacity=0; this.nextElementSibling.textContent='Imagem não encontrada';"
+        >
         <div class="gallery-caption">${item.title}</div>
       </a>
     `).join('');
 
-    // 3) Modal: abre/fecha e navegação
+    // Modal: abre/fecha e navegação
     const $modal    = document.getElementById('imgModal');
     const $imgFull  = document.getElementById('imgFull');
     const $caption  = document.getElementById('imgCaption');
@@ -106,15 +104,21 @@
     function nextImg() {
       if (!GALLERY.length) return;
       current = (current + 1) % GALLERY.length;
-      openModal(current);
+      const it = GALLERY[current];
+      $imgFull.src = it.src;
+      $imgFull.alt = it.title;
+      $caption.textContent = it.title || '';
     }
     function prevImg() {
       if (!GALLERY.length) return;
       current = (current - 1 + GALLERY.length) % GALLERY.length;
-      openModal(current);
+      const it = GALLERY[current];
+      $imgFull.src = it.src;
+      $imgFull.alt = it.title;
+      $caption.textContent = it.title || '';
     }
 
-    // Click nos cards
+    // Clique nos cards
     $grid.addEventListener('click', (ev) => {
       const a = ev.target.closest('a.gallery-item');
       if (!a) return;
@@ -123,11 +127,9 @@
       if (!Number.isNaN(i)) openModal(i);
     });
 
-    // Fechar modal (botão, overlay, ESC)
+    // Fechar modal (botão, overlay, ESC) e setas
     $closeBtn.addEventListener('click', closeModal);
-    $modal.addEventListener('click', (ev) => {
-      if (ev.target === $modal) closeModal();
-    });
+    $modal.addEventListener('click', (ev) => { if (ev.target === $modal) closeModal(); });
     window.addEventListener('keydown', (ev) => {
       if ($modal.hidden) return;
       if (ev.key === 'Escape') closeModal();
