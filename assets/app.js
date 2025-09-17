@@ -1,4 +1,4 @@
-/* assets/app.js - v12.4 (Correção do Player) */
+/* assets/app.js - v12.5 (Refinamento da navegação) */
 const $ = (q) => document.querySelector(q);
 
 // --- FUNÇÕES GLOBAIS ---
@@ -153,7 +153,7 @@ function setupCarousel(carouselEl) {
     carouselEl.appendChild(mkBtn("next"));
 }
 
-// --- MODAL DE VÍDEO (REESTRUTURADO COM CORREÇÃO) ---
+// --- MODAL DE VÍDEO ---
 const modal = $("#ytModal");
 let ytPlayer;
 let isPlayerReady = false;
@@ -175,7 +175,6 @@ window.onYouTubeIframeAPIReady = function() {
 
 function onPlayerReady(event) {
   isPlayerReady = true;
-  // Se houver um vídeo na fila (do primeiro clique), toque ele agora.
   if (queuedVideoId) {
     ytPlayer.loadVideoById(queuedVideoId);
     queuedVideoId = null;
@@ -184,7 +183,7 @@ function onPlayerReady(event) {
 
 function onPlayerStateChange(event) {
   if (event.data === YT.PlayerState.ENDED) {
-    playNextVideo();
+    playNextVideo(true); // Passa 'true' para indicar que é autoplay
   }
 }
 
@@ -195,13 +194,10 @@ function openModal(playlist, index) {
     currentIndex = index;
     const videoId = playlist[index];
 
-    // Sempre abre o modal imediatamente
     modal.hidden = false;
     document.body.style.overflow = "hidden";
     updateNavButtons();
 
-    // Se o player já estiver pronto, toca o vídeo.
-    // Se não, coloca na fila para a função onPlayerReady tocar.
     if (isPlayerReady) {
       ytPlayer.loadVideoById(videoId);
     } else {
@@ -220,12 +216,12 @@ function closeModal() {
     currentIndex = -1;
 }
 
-function playNextVideo() {
+function playNextVideo(isAutoplay = false) {
     if (currentIndex < currentPlaylist.length - 1) {
         currentIndex++;
         ytPlayer.loadVideoById(currentPlaylist[currentIndex]);
         updateNavButtons();
-    } else {
+    } else if (isAutoplay) { // Só fecha o modal se for o fim da lista no autoplay
         closeModal();
     }
 }
