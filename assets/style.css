@@ -60,22 +60,17 @@ body{
   margin-bottom:20px;
   padding:24px;
 }
+/* ALTERADO AQUI: Revertendo para o alinhamento padrão (título à esquerda, botão à direita) */
 .section-head{
-  position:relative;
   display:flex;
   align-items:center;
-  justify-content:flex-end;
+  justify-content:space-between; /* Garante que o título fique à esquerda e o botão à direita */
   margin-bottom:16px;
-  min-height: 32px;
 }
-.section-head h2{
-  position:absolute;
-  left:50%;
-  transform:translateX(-50%);
-  margin:0;
-  padding:0;
-}
+/* ALTERADO AQUI: Bloco inteiro removido, pois a centralização absoluta não é mais necessária */
+/* .section-head h2{ ... } foi removido */
 
+h2{ margin:0; font-size:1.6rem; }
 h3{ margin-top:24px; margin-bottom:12px; font-size:1.3rem; border-bottom:1px solid rgba(255,255,255,.1); padding-bottom:8px; }
 
 /* ================= HERO ================= */
@@ -171,13 +166,11 @@ h3{ margin-top:24px; margin-bottom:12px; font-size:1.3rem; border-bottom:1px sol
   background:rgba(255,255,255,.9); color:#000; font-size:1.5rem;
   font-weight:bold; cursor:pointer; display:grid; place-items:center;
   box-shadow:0 4px 10px rgba(0,0,0,.2);
-  /* Deixa invisível por padrão */
   opacity:0;
   visibility:hidden;
   transition:opacity .2s ease, transform .2s ease, visibility .2s ease;
 }
 .carousel:hover .carousel-nav{
-  /* Mostra no hover do carrossel */
   opacity:1;
   visibility:visible;
 }
@@ -318,12 +311,10 @@ h3{ margin-top:24px; margin-bottom:12px; font-size:1.3rem; border-bottom:1px sol
 
 /* Navegação do Modal de Vídeo */
 #yt-prev, #yt-next {
-  /* Estes botões usam a classe .carousel-nav, então precisamos sobrepor o estilo que os esconde */
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
   z-index: 20;
-  /* CORREÇÃO: Garante que os botões fiquem visíveis e clicáveis dentro do modal */
   opacity: 1;
   visibility: visible;
 }
