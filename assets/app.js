@@ -1,4 +1,4 @@
-/* assets/app.js - v12.3 (playlist Gospel + Instagram) */
+/* assets/app.js - v12.4 (Correção do Player) */
 const $ = (q) => document.querySelector(q);
 
 // --- FUNÇÕES GLOBAIS ---
@@ -153,50 +153,67 @@ function setupCarousel(carouselEl) {
     carouselEl.appendChild(mkBtn("next"));
 }
 
-// --- MODAL DE VÍDEO (REESTRUTURADO) ---
+// --- MODAL DE VÍDEO (REESTRUTURADO COM CORREÇÃO) ---
 const modal = $("#ytModal");
 let ytPlayer;
+let isPlayerReady = false;
+let queuedVideoId = null;
 let currentPlaylist = [];
 let currentIndex = -1;
 
-// 1. A API do YouTube chama esta função quando está pronta.
 window.onYouTubeIframeAPIReady = function() {
   ytPlayer = new YT.Player('ytFrame', {
     height: '100%',
     width: '100%',
     playerVars: { 'autoplay': 1, 'rel': 0 },
     events: {
+      'onReady': onPlayerReady,
       'onStateChange': onPlayerStateChange
     }
   });
 }
 
-// 2. Esta função é chamada sempre que o estado do player muda.
+function onPlayerReady(event) {
+  isPlayerReady = true;
+  // Se houver um vídeo na fila (do primeiro clique), toque ele agora.
+  if (queuedVideoId) {
+    ytPlayer.loadVideoById(queuedVideoId);
+    queuedVideoId = null;
+  }
+}
+
 function onPlayerStateChange(event) {
-  // Se o vídeo terminou (estado 0), toca o próximo
   if (event.data === YT.PlayerState.ENDED) {
     playNextVideo();
   }
 }
 
 function openModal(playlist, index) {
-    if (!modal || !ytPlayer) return;
-
+    if (!modal) return;
+    
     currentPlaylist = playlist;
     currentIndex = index;
-    
-    const videoId = currentPlaylist[currentIndex];
-    if (videoId) {
-        ytPlayer.loadVideoById(videoId);
-        modal.hidden = false;
-        document.body.style.overflow = "hidden";
-        updateNavButtons();
+    const videoId = playlist[index];
+
+    // Sempre abre o modal imediatamente
+    modal.hidden = false;
+    document.body.style.overflow = "hidden";
+    updateNavButtons();
+
+    // Se o player já estiver pronto, toca o vídeo.
+    // Se não, coloca na fila para a função onPlayerReady tocar.
+    if (isPlayerReady) {
+      ytPlayer.loadVideoById(videoId);
+    } else {
+      queuedVideoId = videoId;
     }
 }
 
 function closeModal() {
-    if (!modal || !ytPlayer) return;
-    ytPlayer.stopVideo();
+    if (!modal) return;
+    if (ytPlayer && typeof ytPlayer.stopVideo === 'function') {
+        ytPlayer.stopVideo();
+    }
     modal.hidden = true;
     document.body.style.overflow = "";
     currentPlaylist = [];
@@ -209,7 +226,7 @@ function playNextVideo() {
         ytPlayer.loadVideoById(currentPlaylist[currentIndex]);
         updateNavButtons();
     } else {
-        closeModal(); // Fecha o modal se for o último vídeo
+        closeModal();
     }
 }
 
@@ -226,7 +243,6 @@ function updateNavButtons() {
     $('#yt-next').hidden = currentIndex >= currentPlaylist.length - 1;
 }
 
-
 // --- INICIALIZAÇÃO ---
 function wireEventListeners() {
     $("#btn-buscar")?.addEventListener("click", searchBible);
@@ -240,7 +256,6 @@ function wireEventListeners() {
         const card = e.target.closest(".yt-card[data-vid]");
         if (card) {
             e.preventDefault();
-            // Coleta todos os vídeos do carrossel atual
             const carousel = card.closest('.hscroll');
             const allVideos = [...carousel.querySelectorAll('.yt-card[data-vid]')];
             const playlist = allVideos.map(v => v.dataset.vid);
@@ -255,7 +270,6 @@ function wireEventListeners() {
 
     window.addEventListener("keydown", (e) => { if (e.key === "Escape") closeModal(); });
     
-    // Listeners para os novos botões de navegação
     $('#yt-prev')?.addEventListener('click', playPrevVideo);
     $('#yt-next')?.addEventListener('click', playNextVideo);
 
@@ -267,6 +281,6 @@ function wireEventListeners() {
     await loadCfg();
     mountVersions();
     await Promise.all([loadVDay(), loadLiveOrLatest()]);
-    await loadExtraPlaylists();   // Gospel
-    await loadInstagram();        // Instagram (10 vídeos)
+    await loadExtraPlaylists();
+    await loadInstagram();
 })();
