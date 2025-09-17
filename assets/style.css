@@ -170,10 +170,17 @@ h3{ margin-top:24px; margin-bottom:12px; font-size:1.3rem; border-bottom:1px sol
   width:36px; height:36px; border-radius:50%; border:none;
   background:rgba(255,255,255,.9); color:#000; font-size:1.5rem;
   font-weight:bold; cursor:pointer; display:grid; place-items:center;
-  box-shadow:0 4px 10px rgba(0,0,0,.2); opacity:0; visibility:hidden;
+  box-shadow:0 4px 10px rgba(0,0,0,.2);
+  /* Deixa invisível por padrão */
+  opacity:0;
+  visibility:hidden;
   transition:opacity .2s ease, transform .2s ease, visibility .2s ease;
 }
-.carousel:hover .carousel-nav{ opacity:1; visibility:visible; }
+.carousel:hover .carousel-nav{
+  /* Mostra no hover do carrossel */
+  opacity:1;
+  visibility:visible;
+}
 .carousel-nav:hover{ transform:translateY(-50%) scale(1.1); }
 .carousel-nav.prev{ left:16px; }
 .carousel-nav.next{ right:16px; }
@@ -199,18 +206,11 @@ h3{ margin-top:24px; margin-bottom:12px; font-size:1.3rem; border-bottom:1px sol
 .yt-modal{ position:fixed; inset:0; z-index:50; background:rgba(0,0,0,.7); backdrop-filter:blur(5px); display:grid; place-items:center; padding:20px; }
 .yt-box{ position: relative; width:min(900px, 92vw); background:var(--card); border:1px solid rgba(255,255,255,.1); border-radius:18px; box-shadow:0 20px 60px rgba(0,0,0,.5); padding:16px; }
 .yt-player{ position:relative; padding-top:56.25%; border-radius:12px; overflow:hidden; background-color: #000; }
-/* CORREÇÃO APLICADA AQUI: seletor alterado de '#ytFrame' para 'iframe' */
 .yt-player iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; }
-.yt-close{ position:absolute; right:10px; top:10px; z-index:10; background:rgba(0,0,0,.5); color:#fff; border:1px solid rgba(255,255,255,.25); border-radius:50%; width:32px; height:32px; cursor:pointer; }
+.yt-close{ position:absolute; right:10px; top:10px; z-index:30; background:rgba(0,0,0,.5); color:#fff; border:1px solid rgba(255,255,255,.25); border-radius:50%; width:32px; height:32px; cursor:pointer; }
 
 /* ===== Redes sociais (rodapé) ===== */
-.footer .social-links{
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  gap:12px;
-  margin:0;
-}
+.footer .social-links{ display:flex; justify-content:center; align-items:center; gap:12px; margin:0; }
 .social-btn{
   --size:40px;
   width:var(--size);
@@ -252,10 +252,7 @@ h3{ margin-top:24px; margin-bottom:12px; font-size:1.3rem; border-bottom:1px sol
   border:1px solid rgba(255,255,255,.08);
   background:#000;
 }
-.gallery-item img{
-  width:100%; height:220px; object-fit:cover; display:block;
-  transition:transform .35s ease;
-}
+.gallery-item img{ width:100%; height:220px; object-fit:cover; display:block; transition:transform .35s ease; }
 .gallery-item:hover img{ transform:scale(1.05); }
 .gallery-caption{
   position:absolute; left:0; right:0; bottom:0;
@@ -303,24 +300,12 @@ h3{ margin-top:24px; margin-bottom:12px; font-size:1.3rem; border-bottom:1px sol
    AJUSTES MOBILE DO MENU + ÂNCORAS
    ========================================================= */
 @media (max-width: 900px){
-  .topbar-inner{
-    flex-direction:column;
-    align-items:flex-start;
-    gap:8px;
-  }
+  .topbar-inner{ flex-direction:column; align-items:flex-start; gap:8px; }
   .brand-logo{ width:28px; height:28px; }
   .brand span{ font-size:1rem; }
-
   .menu{
-    order:2;
-    margin-left:0;
-    width:100%;
-    display:flex;
-    flex-wrap:wrap;
-    justify-content:center;
-    gap:8px 18px;
-    overflow:visible;
-    white-space:normal;
+    order:2; margin-left:0; width:100%; display:flex; flex-wrap:wrap;
+    justify-content:center; gap:8px 18px; overflow:visible; white-space:normal;
   }
   .menu a{ font-size:.95rem; padding:4px 0; }
 }
@@ -333,10 +318,12 @@ h3{ margin-top:24px; margin-bottom:12px; font-size:1.3rem; border-bottom:1px sol
 
 /* Navegação do Modal de Vídeo */
 #yt-prev, #yt-next {
+  /* Estes botões usam a classe .carousel-nav, então precisamos sobrepor o estilo que os esconde */
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
   z-index: 20;
+  /* CORREÇÃO: Garante que os botões fiquem visíveis e clicáveis dentro do modal */
   opacity: 1;
   visibility: visible;
 }
