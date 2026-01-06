@@ -50,7 +50,6 @@
       align-items:center;
     }
 
-    /* Imagem no modal */
     .img-box img{
       display:block;
       width:auto;
@@ -62,7 +61,6 @@
       background:#000;
     }
 
-    /* Vídeo no modal */
     .img-box video{
       display:block;
       width:auto;
@@ -73,7 +71,6 @@
       background:#000;
     }
 
-    /* Legenda */
     .img-caption{
       margin-top:10px;
       padding:6px 10px;
@@ -84,7 +81,6 @@
       max-width: 92vw;
     }
 
-    /* Botão fechar (garante clique) */
     .img-close{
       position: absolute;
       right: 10px;
@@ -102,7 +98,7 @@
     }
 
     /* =========================
-       THUMB DO VÍDEO "TIPO YOUTUBE"
+       THUMB "TIPO YOUTUBE"
     ========================= */
     .gallery-item{
       position:relative;
@@ -114,6 +110,8 @@
       height:100%;
       display:block;
       object-fit:cover;
+      border-radius: 0; /* seu CSS externo pode aplicar */
+      background:#000;
     }
 
     .play-overlay{
@@ -143,6 +141,19 @@
       border-left:12px solid #fff;
       border-top:8px solid transparent;
       border-bottom:8px solid transparent;
+    }
+
+    /* Placeholder enquanto gera thumb */
+    .thumb-loading{
+      width:100%;
+      height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:#000;
+      color:#fff;
+      font-size:14px;
+      opacity:.85;
     }
   </style>
 </head>
@@ -195,21 +206,22 @@
   </div>
 
   <script>
-    // =========================
-    // LISTA DO MURAL
-    // VÍDEO: src "mural/video.mp4" e poster usando uma imagem existente
-    // =========================
+    // ==========================================
+    // CONFIG: segundo do vídeo usado como thumb
+    // ==========================================
+    const THUMB_SECOND = 10;
+
+    // ==========================================
+    // LISTA DO MURAL (vários vídeos sem poster)
+    // Só coloque src e pronto.
+    // ==========================================
     const GALLERY = [
       { src: "mural/quartas.jpg", title: "" },
-
-      // VÍDEO (thumbnail antes igual YouTube)
-      { src: "mural/video.mp4", poster: "mural/domingo.jpg", title: "Culto — vídeo" },
-
+      { src: "mural/video.mp4", title: "Culto — vídeo" },
+      // Adicione mais vídeos:
+      // { src: "mural/video2.mp4", title: "Ensaio — vídeo" },
       { src: "mural/sexta.jpeg", title: "" },
       { src: "mural/domingo.jpg", title: "" },
-      // Exemplo de outros que você tem:
-      // { src: "mural/arraial.jpg", title: "" },
-      // { src: "mural/premicias.jpg", title: "" },
     ];
 
     function getExt(path) {
@@ -222,16 +234,20 @@
       return ['mp4', 'webm', 'ogg'].includes(ext);
     }
 
+    // ==========================================
+    // Render grid
+    // Para vídeo, cria um <img> placeholder e gera thumb via canvas
+    // ==========================================
     const $grid = document.getElementById('gallery');
 
     $grid.innerHTML = GALLERY.map((item, i) => {
       const video = isVideoSrc(item.src);
 
       if (video) {
-        const poster = item.poster || "";
         return `
-          <a href="${item.src}" class="gallery-item" data-index="${i}">
-            <img class="video-thumb" src="${poster}" alt="${item.title || 'Vídeo'}">
+          <a href="${item.src}" class="gallery-item" data-index="${i}" data-type="video" data-src="${item.src}">
+            <div class="thumb-loading" data-loading="1">Carregando vídeo…</div>
+            <img class="video-thumb" alt="${item.title || 'Vídeo'}" hidden>
             <div class="play-overlay">
               <div class="play-badge"><span class="play-tri"></span>Vídeo</div>
             </div>
@@ -241,13 +257,103 @@
       }
 
       return `
-        <a href="${item.src}" class="gallery-item" data-index="${i}">
+        <a href="${item.src}" class="gallery-item" data-index="${i}" data-type="image" data-src="${item.src}">
           <img src="${item.src}" alt="${item.title || ''}">
           <div class="gallery-caption"></div>
         </a>
       `;
     }).join('');
 
+    // ==========================================
+    // Gerar thumbnail automático do vídeo no segundo THUMB_SECOND
+    // ==========================================
+    async function makeVideoThumb(videoUrl, atSecond) {
+      return new Promise((resolve, reject) => {
+        const v = document.createElement('video');
+        v.muted = true;
+        v.playsInline = true;
+        v.preload = 'metadata';
+        v.crossOrigin = 'anonymous'; // ok se for mesmo domínio; se não, pode falhar
+        v.src = videoUrl;
+
+        const cleanup = () => {
+          v.removeAttribute('src');
+          v.load();
+        };
+
+        v.addEventListener('error', () => {
+          cleanup();
+          reject(new Error('erro ao carregar vídeo'));
+        }, { once: true });
+
+        v.addEventListener('loadedmetadata', () => {
+          const dur = Number(v.duration);
+          let t = atSecond;
+
+          // se vídeo for menor que 10s, pega 1s ou metade
+          if (isFinite(dur) && dur > 0) {
+            if (t >= dur) t = Math.max(0.5, dur * 0.25);
+          } else {
+            t = 1;
+          }
+
+          const onSeeked = () => {
+            try {
+              const canvas = document.createElement('canvas');
+              canvas.width = v.videoWidth || 640;
+              canvas.height = v.videoHeight || 360;
+
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+
+              const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+              cleanup();
+              resolve(dataUrl);
+            } catch (e) {
+              cleanup();
+              reject(e);
+            }
+          };
+
+          v.addEventListener('seeked', onSeeked, { once: true });
+
+          // força seek pro tempo desejado
+          try {
+            v.currentTime = t;
+          } catch (e) {
+            cleanup();
+            reject(e);
+          }
+        }, { once: true });
+      });
+    }
+
+    async function generateAllVideoThumbs() {
+      const videoCards = Array.from(document.querySelectorAll('.gallery-item[data-type="video"]'));
+      for (const card of videoCards) {
+        const src = card.getAttribute('data-src');
+        const img = card.querySelector('img.video-thumb');
+        const loading = card.querySelector('[data-loading="1"]');
+
+        try {
+          const thumb = await makeVideoThumb(src, THUMB_SECOND);
+          img.src = thumb;
+          img.hidden = false;
+          if (loading) loading.remove();
+        } catch (e) {
+          // fallback: remove "carregando", deixa um fundo preto
+          if (loading) loading.textContent = 'Vídeo';
+          img.hidden = true;
+        }
+      }
+    }
+
+    // chama após montar grid
+    generateAllVideoThumbs();
+
+    // ==========================================
+    // Modal: abre/fecha e navegação
+    // ==========================================
     const $modal    = document.getElementById('imgModal');
     const $imgFull  = document.getElementById('imgFull');
     const $vidFull  = document.getElementById('vidFull');
@@ -273,18 +379,15 @@
       $imgFull.alt = title || '';
     }
 
-    function showVideo(src, poster, title) {
+    function showVideo(src, title) {
       $imgFull.hidden = true;
       $imgFull.src = '';
       $imgFull.alt = '';
 
       $vidFull.hidden = false;
       $vidFull.src = src;
-
-      if (poster) $vidFull.setAttribute('poster', poster);
-      else $vidFull.removeAttribute('poster');
-
       $vidFull.load();
+
       const p = $vidFull.play();
       if (p && typeof p.catch === 'function') p.catch(() => {});
     }
@@ -297,7 +400,7 @@
       $caption.textContent = title;
       $modal.hidden = false;
 
-      if (isVideoSrc(it.src)) showVideo(it.src, it.poster || "", title);
+      if (isVideoSrc(it.src)) showVideo(it.src, title);
       else showImage(it.src, title);
     }
 
