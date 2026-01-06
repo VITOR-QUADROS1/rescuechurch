@@ -8,24 +8,42 @@
   <link rel="icon" href="logo.png">
   <link rel="stylesheet" href="style.css">
 
-  <!-- Ajuste do modal para a imagem/VÍDEO caber na viewport SEM cortes -->
   <style>
-    /* Caixa do modal: deixa elástica e sem cortes */
-    .img-box{
-      width:auto;
-      max-width:96vw;
-      max-height:92vh;
-      padding:0;
-      background:transparent;
-      border:none;
-      box-shadow:none;
-      overflow:visible;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      justify-content:center;
+    /* =========================
+       MODAL (fixo, não invade página)
+    ========================= */
+    .img-modal[hidden] { display: none !important; }
+
+    .img-modal{
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(0,0,0,.72);
+      backdrop-filter: blur(6px);
     }
-    .img-box figure{ margin:0; }
+
+    /* Caixa do modal: elástica e sem cortes */
+    .img-box{
+      position: relative;
+      width: auto;
+      max-width: 96vw;
+      max-height: 92vh;
+      padding: 0;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      overflow: visible;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .img-box figure{ margin:0; width: 100%; display:flex; flex-direction:column; align-items:center; }
 
     /* Imagem no modal */
     .img-box img{
@@ -50,57 +68,82 @@
       background:#000;
     }
 
-    /* Legenda opcional */
+    /* Legenda */
     .img-caption{
-      margin-top:8px;
+      margin-top:10px;
       padding:6px 10px;
       background:rgba(0,0,0,.55);
       border-radius:10px;
       text-align:center;
-    }
-
-    /* Botão de fechar mais próximo da borda */
-    .img-close{ right:8px; top:8px; }
-
-    /* (Opcional) mini "badge" de vídeo no card */
-    .video-badge{
-      position:absolute;
-      left:10px;
-      top:10px;
-      padding:4px 8px;
-      border-radius:999px;
-      background:rgba(0,0,0,.55);
       color:#fff;
-      font-size:12px;
+      max-width: 92vw;
+    }
+
+    /* Botão fechar (garante clique) */
+    .img-close{
+      position: absolute;
+      right: 10px;
+      top: 10px;
+      width: 40px;
+      height: 40px;
+      border-radius: 999px;
+      border: 0;
+      cursor: pointer;
+      font-size: 18px;
+      line-height: 40px;
+      color: #fff;
+      background: rgba(0,0,0,.55);
+      z-index: 10000;
+    }
+
+    /* =========================
+       THUMB DO VÍDEO "TIPO YOUTUBE"
+    ========================= */
+    .gallery-item{
+      position:relative;
+      display:block;
+    }
+
+    .video-thumb{
+      width:100%;
+      height:100%;
+      display:block;
+      object-fit:cover;
+    }
+
+    .play-overlay{
+      position:absolute;
+      inset:0;
       display:flex;
-      gap:6px;
       align-items:center;
+      justify-content:center;
       pointer-events:none;
-      z-index:2;
     }
 
-    /* garante que o card possa ter overlay */
-    .gallery-item{ position:relative; }
-
-    /* preview de vídeo no grid */
-    .gallery-item video{
-      width:100%;
-      height:100%;
-      display:block;
-      object-fit:cover;
+    .play-badge{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:10px 14px;
+      border-radius:999px;
+      background: rgba(0,0,0,.55);
+      color:#fff;
+      font-size:14px;
+      font-weight:600;
     }
 
-    /* preview de imagem no grid (mantém) */
-    .gallery-item img{
-      width:100%;
-      height:100%;
-      display:block;
-      object-fit:cover;
+    .play-tri{
+      width:0;
+      height:0;
+      border-left:12px solid #fff;
+      border-top:8px solid transparent;
+      border-bottom:8px solid transparent;
     }
   </style>
 </head>
+
 <body>
-  <!-- Topbar igual ao site principal -->
+  <!-- Topbar -->
   <header class="topbar">
     <a href="https://www.youtube.com/channel/UC11Km85MPiYbuPmG7Lz2Wjg" target="_blank" rel="noopener" class="brand-link">
       <div class="brand">
@@ -123,7 +166,6 @@
         <h2>Mural da Comunidade</h2>
       </div>
 
-      <!-- Grid do mural; os itens serão injetados via JS -->
       <div id="gallery" class="gallery-grid"></div>
 
       <p class="muted" style="margin-top:14px">
@@ -136,30 +178,34 @@
     </section>
   </main>
 
-  <!-- Modal de mídia (imagem/vídeo) -->
+  <!-- Modal de mídia -->
   <div id="imgModal" class="img-modal" hidden>
     <div class="img-box">
-      <button class="img-close" aria-label="Fechar">✕</button>
+      <button class="img-close" aria-label="Fechar" type="button">✕</button>
+
       <figure>
-        <!-- vamos alternar entre IMG e VIDEO -->
         <img id="imgFull" src="" alt="" hidden />
-        <video id="vidFull" controls playsinline muted hidden></video>
+        <video id="vidFull" controls playsinline preload="metadata" hidden></video>
         <figcaption id="imgCaption" class="img-caption"></figcaption>
       </figure>
     </div>
   </div>
 
   <script>
-    // 1) LISTA DO MURAL: imagens e vídeos
+    // =========================
+    // 1) LISTA DO MURAL
+    // Para vídeo, coloque poster: "mural/SEU-THUMB.jpg"
+    // =========================
     const GALLERY = [
-      { src: "mural/quartas.jpg"},
-      { src: "mural/video.mp4", title: "Culto — vídeo" },
-      { src: "mural/sexta.jpeg"},
-      { src: "mural/domingo.jpg"},
-      // { src: "mural/santaceia.jpg"},
+      { src: "mural/quartas.jpg", title: "" },
+
+      // VIDEO: troque/coloque seu thumbnail aqui (tipo youtube)
+      { src: "mural/video.mp4", poster: "mural/video-thumb.jpg", title: "Culto — vídeo" },
+
+      { src: "mural/sexta.jpeg", title: "" },
+      { src: "mural/domingo.jpg", title: "" },
     ];
 
-    // Helpers: detectar tipo por extensão
     function getExt(path) {
       const clean = String(path).split('?')[0].split('#')[0];
       const parts = clean.split('.');
@@ -170,17 +216,25 @@
       return ['mp4', 'webm', 'ogg'].includes(ext);
     }
 
-    // 2) Renderiza os cards na grade (img OU vídeo)
+    // =========================
+    // 2) Renderiza grid
+    // Imagem => <img>
+    // Vídeo  => thumbnail (poster) com overlay play
+    // =========================
     const $grid = document.getElementById('gallery');
 
     $grid.innerHTML = GALLERY.map((item, i) => {
       const video = isVideoSrc(item.src);
 
       if (video) {
+        const poster = item.poster || "";
+        // Se não tiver poster, ainda mostra um bloco (melhor definir poster)
         return `
           <a href="${item.src}" class="gallery-item" data-index="${i}">
-            <span class="video-badge">▶ Vídeo</span>
-            <video src="${item.src}" preload="metadata" muted playsinline></video>
+            <img class="video-thumb" src="${poster}" alt="${item.title || 'Vídeo'}" onerror="this.style.opacity=.25; this.alt='(adicione poster do vídeo)';">
+            <div class="play-overlay">
+              <div class="play-badge"><span class="play-tri"></span>Vídeo</div>
+            </div>
             <div class="gallery-caption"></div>
           </a>
         `;
@@ -188,13 +242,15 @@
 
       return `
         <a href="${item.src}" class="gallery-item" data-index="${i}">
-          <img src="${item.src}" alt="">
+          <img src="${item.src}" alt="${item.title || ''}">
           <div class="gallery-caption"></div>
         </a>
       `;
     }).join('');
 
+    // =========================
     // 3) Modal: abre/fecha e navegação
+    // =========================
     const $modal    = document.getElementById('imgModal');
     const $imgFull  = document.getElementById('imgFull');
     const $vidFull  = document.getElementById('vidFull');
@@ -220,22 +276,22 @@
       $imgFull.alt = title || '';
     }
 
-    function showVideo(src, title) {
-      // esconde imagem
+    function showVideo(src, poster, title) {
       $imgFull.hidden = true;
       $imgFull.src = '';
       $imgFull.alt = '';
 
-      // mostra vídeo
       $vidFull.hidden = false;
       $vidFull.src = src;
+
+      if (poster) $vidFull.setAttribute('poster', poster);
+      else $vidFull.removeAttribute('poster');
+
       $vidFull.load();
 
-      // tenta tocar ao abrir (pode ser bloqueado se não estiver muted)
-      const playPromise = $vidFull.play();
-      if (playPromise && typeof playPromise.catch === 'function') {
-        playPromise.catch(() => {});
-      }
+      // tenta dar play; em celular pode bloquear se não houver interação ou se não estiver permitido
+      const p = $vidFull.play();
+      if (p && typeof p.catch === 'function') p.catch(() => {});
     }
 
     function openModal(index) {
@@ -246,8 +302,11 @@
       $caption.textContent = title;
       $modal.hidden = false;
 
-      if (isVideoSrc(it.src)) showVideo(it.src, title);
-      else showImage(it.src, title);
+      if (isVideoSrc(it.src)) {
+        showVideo(it.src, it.poster || "", title);
+      } else {
+        showImage(it.src, title);
+      }
     }
 
     function closeModal() {
@@ -282,10 +341,19 @@
       if (!Number.isNaN(i)) openModal(i);
     });
 
-    // Fechar modal (botão, overlay, ESC e setas)
-    $closeBtn.addEventListener('click', closeModal);
-    $modal.addEventListener('click', (ev) => { if (ev.target === $modal) closeModal(); });
+    // X fecha (funciona)
+    $closeBtn.addEventListener('click', (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      closeModal();
+    });
 
+    // Clique fora fecha (somente no backdrop)
+    $modal.addEventListener('click', (ev) => {
+      if (ev.target === $modal) closeModal();
+    });
+
+    // ESC e setas
     window.addEventListener('keydown', (ev) => {
       if ($modal.hidden) return;
       if (ev.key === 'Escape') closeModal();
