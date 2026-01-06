@@ -26,7 +26,6 @@
       backdrop-filter: blur(6px);
     }
 
-    /* Caixa do modal: elástica e sem cortes */
     .img-box{
       position: relative;
       width: auto;
@@ -43,7 +42,13 @@
       justify-content: center;
     }
 
-    .img-box figure{ margin:0; width: 100%; display:flex; flex-direction:column; align-items:center; }
+    .img-box figure{
+      margin:0;
+      width: 100%;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+    }
 
     /* Imagem no modal */
     .img-box img{
@@ -143,7 +148,6 @@
 </head>
 
 <body>
-  <!-- Topbar -->
   <header class="topbar">
     <a href="https://www.youtube.com/channel/UC11Km85MPiYbuPmG7Lz2Wjg" target="_blank" rel="noopener" class="brand-link">
       <div class="brand">
@@ -178,7 +182,6 @@
     </section>
   </main>
 
-  <!-- Modal de mídia -->
   <div id="imgModal" class="img-modal" hidden>
     <div class="img-box">
       <button class="img-close" aria-label="Fechar" type="button">✕</button>
@@ -193,17 +196,20 @@
 
   <script>
     // =========================
-    // 1) LISTA DO MURAL
-    // Para vídeo, coloque poster: "mural/SEU-THUMB.jpg"
+    // LISTA DO MURAL
+    // VÍDEO: src "mural/video.mp4" e poster usando uma imagem existente
     // =========================
     const GALLERY = [
       { src: "mural/quartas.jpg", title: "" },
 
-      // VIDEO: troque/coloque seu thumbnail aqui (tipo youtube)
-      { src: "mural/video.mp4", poster: "mural/video-thumb.jpg", title: "Culto — vídeo" },
+      // VÍDEO (thumbnail antes igual YouTube)
+      { src: "mural/video.mp4", poster: "mural/domingo.jpg", title: "Culto — vídeo" },
 
       { src: "mural/sexta.jpeg", title: "" },
       { src: "mural/domingo.jpg", title: "" },
+      // Exemplo de outros que você tem:
+      // { src: "mural/arraial.jpg", title: "" },
+      // { src: "mural/premicias.jpg", title: "" },
     ];
 
     function getExt(path) {
@@ -216,11 +222,6 @@
       return ['mp4', 'webm', 'ogg'].includes(ext);
     }
 
-    // =========================
-    // 2) Renderiza grid
-    // Imagem => <img>
-    // Vídeo  => thumbnail (poster) com overlay play
-    // =========================
     const $grid = document.getElementById('gallery');
 
     $grid.innerHTML = GALLERY.map((item, i) => {
@@ -228,10 +229,9 @@
 
       if (video) {
         const poster = item.poster || "";
-        // Se não tiver poster, ainda mostra um bloco (melhor definir poster)
         return `
           <a href="${item.src}" class="gallery-item" data-index="${i}">
-            <img class="video-thumb" src="${poster}" alt="${item.title || 'Vídeo'}" onerror="this.style.opacity=.25; this.alt='(adicione poster do vídeo)';">
+            <img class="video-thumb" src="${poster}" alt="${item.title || 'Vídeo'}">
             <div class="play-overlay">
               <div class="play-badge"><span class="play-tri"></span>Vídeo</div>
             </div>
@@ -248,9 +248,6 @@
       `;
     }).join('');
 
-    // =========================
-    // 3) Modal: abre/fecha e navegação
-    // =========================
     const $modal    = document.getElementById('imgModal');
     const $imgFull  = document.getElementById('imgFull');
     const $vidFull  = document.getElementById('vidFull');
@@ -288,8 +285,6 @@
       else $vidFull.removeAttribute('poster');
 
       $vidFull.load();
-
-      // tenta dar play; em celular pode bloquear se não houver interação ou se não estiver permitido
       const p = $vidFull.play();
       if (p && typeof p.catch === 'function') p.catch(() => {});
     }
@@ -302,11 +297,8 @@
       $caption.textContent = title;
       $modal.hidden = false;
 
-      if (isVideoSrc(it.src)) {
-        showVideo(it.src, it.poster || "", title);
-      } else {
-        showImage(it.src, title);
-      }
+      if (isVideoSrc(it.src)) showVideo(it.src, it.poster || "", title);
+      else showImage(it.src, title);
     }
 
     function closeModal() {
@@ -332,7 +324,6 @@
       openModal(current);
     }
 
-    // Click nos cards
     $grid.addEventListener('click', (ev) => {
       const a = ev.target.closest('a.gallery-item');
       if (!a) return;
@@ -341,19 +332,16 @@
       if (!Number.isNaN(i)) openModal(i);
     });
 
-    // X fecha (funciona)
     $closeBtn.addEventListener('click', (ev) => {
       ev.preventDefault();
       ev.stopPropagation();
       closeModal();
     });
 
-    // Clique fora fecha (somente no backdrop)
     $modal.addEventListener('click', (ev) => {
       if (ev.target === $modal) closeModal();
     });
 
-    // ESC e setas
     window.addEventListener('keydown', (ev) => {
       if ($modal.hidden) return;
       if (ev.key === 'Escape') closeModal();
