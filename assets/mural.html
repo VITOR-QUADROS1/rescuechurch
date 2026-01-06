@@ -8,7 +8,7 @@
   <link rel="icon" href="logo.png">
   <link rel="stylesheet" href="style.css">
 
-  <!-- Ajuste do modal para a imagem caber na viewport SEM cortes -->
+  <!-- Ajuste do modal para a imagem/VÍDEO caber na viewport SEM cortes -->
   <style>
     /* Caixa do modal: deixa elástica e sem cortes */
     .img-box{
@@ -16,10 +16,10 @@
       max-width:96vw;
       max-height:92vh;
       padding:0;
-      background:transparent;      /* usa o backdrop do modal */
+      background:transparent;
       border:none;
       box-shadow:none;
-      overflow:visible;            /* importante: evitar corte */
+      overflow:visible;
       display:flex;
       flex-direction:column;
       align-items:center;
@@ -27,16 +27,27 @@
     }
     .img-box figure{ margin:0; }
 
-    /* A imagem passa a “conter” dentro da viewport */
+    /* Imagem no modal */
     .img-box img{
       display:block;
-      width:auto;                  /* deixa o browser decidir */
+      width:auto;
       height:auto;
-      max-width:96vw;              /* limita por largura da tela */
-      max-height:90vh;             /* e por altura da tela */
-      object-fit:contain;          /* mantém proporção SEM esticar */
+      max-width:96vw;
+      max-height:90vh;
+      object-fit:contain;
       border-radius:12px;
-      background:#000;             /* base neutra em volta */
+      background:#000;
+    }
+
+    /* Vídeo no modal */
+    .img-box video{
+      display:block;
+      width:auto;
+      height:auto;
+      max-width:96vw;
+      max-height:90vh;
+      border-radius:12px;
+      background:#000;
     }
 
     /* Legenda opcional */
@@ -48,8 +59,44 @@
       text-align:center;
     }
 
-    /* Botão de fechar mais próximo da borda da imagem */
+    /* Botão de fechar mais próximo da borda */
     .img-close{ right:8px; top:8px; }
+
+    /* (Opcional) mini "badge" de vídeo no card */
+    .video-badge{
+      position:absolute;
+      left:10px;
+      top:10px;
+      padding:4px 8px;
+      border-radius:999px;
+      background:rgba(0,0,0,.55);
+      color:#fff;
+      font-size:12px;
+      display:flex;
+      gap:6px;
+      align-items:center;
+      pointer-events:none;
+      z-index:2;
+    }
+
+    /* garante que o card possa ter overlay */
+    .gallery-item{ position:relative; }
+
+    /* preview de vídeo no grid */
+    .gallery-item video{
+      width:100%;
+      height:100%;
+      display:block;
+      object-fit:cover;
+    }
+
+    /* preview de imagem no grid (mantém) */
+    .gallery-item img{
+      width:100%;
+      height:100%;
+      display:block;
+      object-fit:cover;
+    }
   </style>
 </head>
 <body>
@@ -72,15 +119,15 @@
 
   <main class="container">
     <section class="card section">
-      <div class="section-head", style="text-align:center;">
-        <h2>Mural da Comunidade </h2>
-       </div>
+      <div class="section-head" style="text-align:center;">
+        <h2>Mural da Comunidade</h2>
+      </div>
 
       <!-- Grid do mural; os itens serão injetados via JS -->
       <div id="gallery" class="gallery-grid"></div>
 
       <p class="muted" style="margin-top:14px">
-        Dica: clique numa foto para ampliar · use as setas do teclado (← →) · ESC para fechar
+        Dica: clique numa foto/vídeo para ampliar · use as setas do teclado (← →) · ESC para fechar
       </p>
 
       <div style="margin-top:18px; text-align:right">
@@ -89,67 +136,138 @@
     </section>
   </main>
 
-  <!-- Modal de imagem -->
+  <!-- Modal de mídia (imagem/vídeo) -->
   <div id="imgModal" class="img-modal" hidden>
     <div class="img-box">
       <button class="img-close" aria-label="Fechar">✕</button>
       <figure>
-        <img id="imgFull" src="" alt="" />
+        <!-- vamos alternar entre IMG e VIDEO -->
+        <img id="imgFull" src="" alt="" hidden />
+        <video id="vidFull" controls playsinline muted hidden></video>
         <figcaption id="imgCaption" class="img-caption"></figcaption>
       </figure>
     </div>
   </div>
 
   <script>
-    // 1) LISTA DO MURAL: adicione aqui suas imagens (caminhos relativos a /assets)
+    // 1) LISTA DO MURAL: imagens e vídeos
     const GALLERY = [
       { src: "mural/quartas.jpg"},
-      { src: "mural/video.mp4"},
+      { src: "mural/video.mp4", title: "Culto — vídeo" },
       { src: "mural/sexta.jpeg"},
       { src: "mural/domingo.jpg"},
-      //{ src: "mural/santaceia.jpg"},
-      
-      
-      // Acrescente mais linhas conforme fizer upload em assets/mural/
-      // { src: "mural/batismos.jpg",        title: "Batismos" },
+      // { src: "mural/santaceia.jpg"},
     ];
 
-    // 2) Renderiza os cards na grade
+    // Helpers: detectar tipo por extensão
+    function getExt(path) {
+      const clean = String(path).split('?')[0].split('#')[0];
+      const parts = clean.split('.');
+      return (parts.length > 1 ? parts.pop() : '').toLowerCase();
+    }
+    function isVideoSrc(src) {
+      const ext = getExt(src);
+      return ['mp4', 'webm', 'ogg'].includes(ext);
+    }
+
+    // 2) Renderiza os cards na grade (img OU vídeo)
     const $grid = document.getElementById('gallery');
-    $grid.innerHTML = GALLERY.map((item, i) => `
-      <a href="${item.src}" class="gallery-item" data-index="${i}">
-        <img src="${item.src}">
-        <div class="gallery-caption"></div>
-      </a>
-    `).join('');
+
+    $grid.innerHTML = GALLERY.map((item, i) => {
+      const video = isVideoSrc(item.src);
+
+      if (video) {
+        return `
+          <a href="${item.src}" class="gallery-item" data-index="${i}">
+            <span class="video-badge">▶ Vídeo</span>
+            <video src="${item.src}" preload="metadata" muted playsinline></video>
+            <div class="gallery-caption"></div>
+          </a>
+        `;
+      }
+
+      return `
+        <a href="${item.src}" class="gallery-item" data-index="${i}">
+          <img src="${item.src}" alt="">
+          <div class="gallery-caption"></div>
+        </a>
+      `;
+    }).join('');
 
     // 3) Modal: abre/fecha e navegação
     const $modal    = document.getElementById('imgModal');
     const $imgFull  = document.getElementById('imgFull');
+    const $vidFull  = document.getElementById('vidFull');
     const $caption  = document.getElementById('imgCaption');
     const $closeBtn = $modal.querySelector('.img-close');
 
     let current = -1;
 
+    function stopVideo() {
+      try {
+        $vidFull.pause();
+        $vidFull.removeAttribute('src');
+        $vidFull.load();
+      } catch(e) {}
+    }
+
+    function showImage(src, title) {
+      stopVideo();
+      $vidFull.hidden = true;
+
+      $imgFull.hidden = false;
+      $imgFull.src = src;
+      $imgFull.alt = title || '';
+    }
+
+    function showVideo(src, title) {
+      // esconde imagem
+      $imgFull.hidden = true;
+      $imgFull.src = '';
+      $imgFull.alt = '';
+
+      // mostra vídeo
+      $vidFull.hidden = false;
+      $vidFull.src = src;
+      $vidFull.load();
+
+      // tenta tocar ao abrir (pode ser bloqueado se não estiver muted)
+      const playPromise = $vidFull.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch(() => {});
+      }
+    }
+
     function openModal(index) {
       current = index;
       const it = GALLERY[current];
-      $imgFull.src = it.src;
-      $imgFull.alt = it.title;
-      $caption.textContent = it.title || '';
+      const title = it.title || '';
+
+      $caption.textContent = title;
       $modal.hidden = false;
+
+      if (isVideoSrc(it.src)) showVideo(it.src, title);
+      else showImage(it.src, title);
     }
+
     function closeModal() {
       $modal.hidden = true;
+      $caption.textContent = '';
       $imgFull.src = '';
+      $imgFull.alt = '';
+      $imgFull.hidden = true;
+      stopVideo();
+      $vidFull.hidden = true;
       current = -1;
     }
-    function nextImg() {
+
+    function nextItem() {
       if (!GALLERY.length) return;
       current = (current + 1) % GALLERY.length;
       openModal(current);
     }
-    function prevImg() {
+
+    function prevItem() {
       if (!GALLERY.length) return;
       current = (current - 1 + GALLERY.length) % GALLERY.length;
       openModal(current);
@@ -167,11 +285,12 @@
     // Fechar modal (botão, overlay, ESC e setas)
     $closeBtn.addEventListener('click', closeModal);
     $modal.addEventListener('click', (ev) => { if (ev.target === $modal) closeModal(); });
+
     window.addEventListener('keydown', (ev) => {
       if ($modal.hidden) return;
       if (ev.key === 'Escape') closeModal();
-      else if (ev.key === 'ArrowRight') nextImg();
-      else if (ev.key === 'ArrowLeft')  prevImg();
+      else if (ev.key === 'ArrowRight') nextItem();
+      else if (ev.key === 'ArrowLeft')  prevItem();
     });
   </script>
 </body>
